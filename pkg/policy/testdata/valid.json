@@ -1,0 +1,72 @@
+{
+    "version": 1,
+    "tracks": {
+        "build": {
+            "builders": [
+                {
+                    "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml",
+                    "level": 3
+                },
+                {
+                    "id": "https://cloudbuild.googleapis.com/GoogleHostedWorker",
+                    "level": 3
+                }
+            ]
+        },
+        "source": {
+            "attestors": [
+                {
+                    "id": "https://github.com/source-attestor",
+                    "authoritativeFor": [
+                        "git+https://github.com/*"
+                    ]
+                },
+                {
+                    "id": "https://cloudbuild.googleapis.com/GoogleSourceAttestor",
+                    "authoritativeFor": [
+                        "git+https://git.googlecloud.com/*"
+                    ]
+                }
+            ]
+        }
+    },
+    "packages": [
+        {
+            "uri": "docker://google/*"
+        },
+        {
+            "uri": "docker://googlecloud/*"
+        }
+    ],
+    "sources": [
+        {
+            "uri": "git+https://github.com/google/*"
+        },
+        {
+            "uri": "git+https://github.com/googlecloudplatform/*"
+        }
+    ],
+    "enforcement": {
+        "onViolation": "deny",
+        "logOn": [
+            "deny", "allow"
+        ],
+        "overwrite": {
+            "default": "deny",
+            "exceptions": [
+                {
+                    "sources": [
+                        {
+                            "uri": "git+https://github.com/google/special1"
+                        },
+                        {
+                            "uri": "git+https://github.com/google/special2"
+                        }
+                    ],
+                    "reason": "special repos",
+                    "overwrite": "allow"
+                }
+            ]
+        }
+    }
+}
