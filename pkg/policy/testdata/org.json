@@ -47,7 +47,7 @@
         }
     ],
     "enforcement": {
-        "onViolation": "deny",
+        "onViolation": "allow",
         "logOn": [
             "deny", "allow"
         ],
@@ -57,14 +57,15 @@
                 {
                     "sources": [
                         {
-                            "uri": "git+https://github.com/googlenot/repo1"
+                            "uri": "git+https://github.com/googlenot/*"
                         },
                         {
                             "uri": "git+https://github.com/google/special2"
                         }
                     ],
                     "reason": "special repos",
-                    "overwrite": "allow"
+                    "overwrite": "allow",
+                    "onViolation": "deny"
                 },
                 {
                     "sources": [

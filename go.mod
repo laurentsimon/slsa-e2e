@@ -3,6 +3,7 @@ module github.com/laurentsimon/slsa-e2e
 go 1.22
 
 require (
+	github.com/google/go-cmp v0.5.9
 	github.com/ossf/scorecard/v4 v4.12.0
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1

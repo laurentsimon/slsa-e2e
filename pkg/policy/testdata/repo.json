@@ -17,5 +17,10 @@
         {
             "uri": "docker://googlecloud/*"
         }
+    ],
+    "sources": [
+        {
+            "uri": "git+https://github.com/googlenot/repo1"
+        }
     ]
 }

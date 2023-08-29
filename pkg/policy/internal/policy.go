@@ -39,13 +39,15 @@ const (
 	EnforcementTypeDeny  = "deny"
 )
 
+type Exception struct {
+	Sources     []Source         `json:"sources"`
+	Reason      string           `json:"reason"`
+	Overwrite   *EnforcementType `json:"overwrite"`
+	OnViolation *EnforcementType `json:"onViolation"`
+}
 type Overwrite struct {
 	Default    EnforcementType `json:"default"`
-	Exceptions []struct {
-		Sources   []Source        `json:"sources"`
-		Reason    string          `json:"reason"`
-		Overwrite EnforcementType `json:"overwrite"`
-	} `json:"exceptions"`
+	Exceptions []Exception     `json:"exceptions"`
 }
 
 type Enforcement struct {
@@ -180,29 +182,32 @@ func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) error {
 }
 
 func enforced(enforcement Enforcement, sourceURI string) bool {
-	overwrite := enforcement.Overwrite
-	// TODO: BUG: need to look at triplet onViolation, overwirite.default and
-	// exceptions.overwrite.
-	if overwrite.Default == EnforcementTypeAllow {
-		// Ensure no exception to deny.
-		return true
-	}
-	// default is to deny.
-	for i := range overwrite.Exceptions {
-		pException := overwrite.Exceptions[i]
-		// If the exception does not allow, we fail.
-		if pException.Overwrite != EnforcementTypeAllow {
-			return false
+	// We need to look at tuple (onViolation, overwrite.default, exceptions.overwrite, exception.OnViolation).
+	defaultEnforcement := enforcement.OnViolation
+	defaultOverwrite := enforcement.Overwrite.Default
+
+	for i := range enforcement.Overwrite.Exceptions {
+		newEnforcement := defaultEnforcement
+		newOverwrite := defaultOverwrite
+		pException := enforcement.Overwrite.Exceptions[i]
+		if pException.Overwrite != nil && *pException.Overwrite != defaultOverwrite {
+			newOverwrite = *pException.Overwrite
+		}
+		if pException.OnViolation != nil && *pException.OnViolation != defaultEnforcement {
+			newEnforcement = *pException.OnViolation
 		}
 		// Check the source URIs.
 		for j := range pException.Sources {
 			pSource := &pException.Sources[j]
 			if Glob(pSource.URI, sourceURI) {
-				return true
+				if newEnforcement == EnforcementTypeAllow ||
+					newOverwrite == EnforcementTypeAllow {
+					return false
+				}
 			}
 		}
 	}
-	return false
+	return true
 }
 
 func (p *Policy) validateBuildTrack(sourceURI, builderID string) error {
@@ -225,9 +230,9 @@ func (p *Policy) validateBuildTrack(sourceURI, builderID string) error {
 
 		// Overwrites must be *explicit* at every level. They default to disallowed.
 		// Every parent can set the overwrite.
-		var deny bool
+		var enforce bool
 		if i < len(p.policies) {
-			deny = enforced(p.policies[i].Enforcement, sourceURI)
+			enforce = enforced(p.policies[i].Enforcement, sourceURI)
 		}
 
 		// if not builders are defined, ignore the result.
@@ -237,7 +242,7 @@ func (p *Policy) validateBuildTrack(sourceURI, builderID string) error {
 		if i > 0 && len(pBuildTrack.Builders) == 0 {
 			continue
 		}
-		if !deny && !pass {
+		if enforce && !pass {
 			return fmt.Errorf("build track failed: policy level %d for %q. Must be one of %q", i, builderID, pBuildTrack.Builders)
 		}
 
@@ -274,9 +279,9 @@ func (p *Policy) validateImages(sourceURI, imageURI string) error {
 
 		// Overwrites must be *explicit* at every level. They default to disallowed.
 		// Every parent can set the overwrite.
-		var deny bool
+		var enforce bool
 		if i < len(p.policies) {
-			deny = enforced(p.policies[i].Enforcement, sourceURI)
+			enforce = enforced(p.policies[i].Enforcement, sourceURI)
 		}
 
 		// if not images are defined, ignore the result.
@@ -285,7 +290,7 @@ func (p *Policy) validateImages(sourceURI, imageURI string) error {
 		if i > 0 && len(*pImages) == 0 {
 			continue
 		}
-		if !deny && !pass {
+		if enforce && !pass {
 			return fmt.Errorf("image failed: policy level %d for %q. Must be one of %q", i, imageURI, *pImages)
 		}
 
@@ -331,12 +336,12 @@ func (p *Policy) validateSources(sourceURI string) error {
 
 		// Overwrites must be *explicit* at every level. They default to disallowed.
 		// Every parent can set the overwrite.
-		var deny bool
+		var enforce bool
 		if i < len(p.policies) {
-			deny = enforced(p.policies[i].Enforcement, sourceURI)
+			enforce = enforced(p.policies[i].Enforcement, sourceURI)
 		}
 
-		if !deny && !pass {
+		if enforce && !pass {
 			return fmt.Errorf("source failed: policy level %d for %q. Must be one of %q", i, sourceURI, *pSources)
 		}
 		// TODO: test: p1 overwrite, p2 no overwrite
