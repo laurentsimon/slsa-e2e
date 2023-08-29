@@ -14,6 +14,9 @@ import (
 
 var labels []string
 var files []string
+var sourceURI string
+var imageURI string
+var builderID string
 
 // evalCmd represents the eval command
 var evalCmd = &cobra.Command{
@@ -41,8 +44,8 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
-		if err := pol.Evaluate(); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to create evaluate: %v\n", err)
+		if err := pol.Evaluate(sourceURI, imageURI, builderID); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to evaluate: %v\n", err)
 			os.Exit(1)
 		}
 	},
@@ -62,6 +65,12 @@ func init() {
 
 	evalCmd.Flags().StringSliceVarP(&labels, "labels", "l", []string{}, "A list of labels")
 	evalCmd.Flags().StringSliceVarP(&files, "files", "f", []string{}, "A list of orddered files")
+	evalCmd.Flags().StringVarP(&sourceURI, "source-uri", "s", "", "The source-uri")
+	evalCmd.Flags().StringVarP(&imageURI, "image-uri", "i", "", "The image-uri")
+	evalCmd.Flags().StringVarP(&builderID, "builder-id", "b", "", "The builder ID")
 
 	evalCmd.MarkFlagRequired("files")
+	evalCmd.MarkFlagRequired("source-uri")
+	evalCmd.MarkFlagRequired("image-uri")
+	evalCmd.MarkFlagRequired("builder-id")
 }

@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "tracks": {
+        "build": {
+            "builders": [
+                {
+                    "id": "https://github.com/another/org/.github/workflows/generator_container_slsa3.yml",
+                    "level": 2
+                }
+            ]
+        }
+    },
+    "images": [
+        {
+            "uri": "docker://googlenot/myimage:v*"
+        },
+        {
+            "uri": "docker://googlecloud/*"
+        }
+    ]
+}

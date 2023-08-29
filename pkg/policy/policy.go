@@ -21,6 +21,6 @@ func FromFiles(files []string) (*Policy, error) {
 }
 
 // Evaluate evaluates the policy.
-func (p *Policy) Evaluate() error {
-	return nil
+func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) error {
+	return p.policy.Evaluate(sourceURI, imageURI, builderID)
 }
