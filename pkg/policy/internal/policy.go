@@ -161,8 +161,6 @@ func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) error {
 		return fmt.Errorf("policy len is %q", len(p.policies))
 	}
 
-	// TODO: Start by checking whether this team is part of an exception.
-
 	if err := p.validateSources(sourceURI); err != nil {
 		return err
 	}
@@ -183,7 +181,7 @@ func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) error {
 
 func enforced(enforcement Enforcement, sourceURI string) bool {
 	overwrite := enforcement.Overwrite
-	// TODO: need to look at triplet onViolation, overwirite.default and
+	// TODO: BUG: need to look at triplet onViolation, overwirite.default and
 	// exceptions.overwrite.
 	if overwrite.Default == EnforcementTypeAllow {
 		// Ensure no exception to deny.
