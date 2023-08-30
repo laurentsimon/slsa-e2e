@@ -22,5 +22,11 @@
         {
             "uri": "git+https://github.com/googlenot/repo1"
         }
-    ]
+    ],
+    "deployement": {
+        "metadata": {
+            "namespace": "${{ inputs.metadata-namespace }}",
+            "labels": "${{ inputs.metadata-labels }}"
+        }
+    }
 }

@@ -228,20 +228,20 @@ func (p *Policy) validateBuildTrack(sourceURI, builderID string) error {
 			}
 		}
 
-		// Overwrites must be *explicit* at every level. They default to disallowed.
-		// Every parent can set the overwrite.
 		var enforce bool
 		if i < len(p.policies) {
 			enforce = enforced(p.policies[i].Enforcement, sourceURI)
 		}
 
-		// if not builders are defined, ignore the result.
+		// if no builders are defined, ignore the result.
 		// TODO: do we want to force the child to provide builders
 		// if they are allowed to overwrite? We're unlikely to support
 		// the builers anyway for verification.
 		if i > 0 && len(pBuildTrack.Builders) == 0 {
 			continue
 		}
+		// TODO: if !pass, we need to return the log level and message.
+		// We need PASS, FAIL, PASS_WITH_EXCEPTION?
 		if enforce && !pass {
 			return fmt.Errorf("build track failed: policy level %d for %q. Must be one of %q", i, builderID, pBuildTrack.Builders)
 		}
@@ -290,6 +290,8 @@ func (p *Policy) validateImages(sourceURI, imageURI string) error {
 		if i > 0 && len(*pImages) == 0 {
 			continue
 		}
+		// TODO: if !pass, we need to return the log level and message.
+		// We need PASS, FAIL, PASS_WITH_EXCEPTION?
 		if enforce && !pass {
 			return fmt.Errorf("image failed: policy level %d for %q. Must be one of %q", i, imageURI, *pImages)
 		}
@@ -341,6 +343,8 @@ func (p *Policy) validateSources(sourceURI string) error {
 			enforce = enforced(p.policies[i].Enforcement, sourceURI)
 		}
 
+		// TODO: if !pass, we need to return the log level and message.
+		// We need PASS, FAIL, PASS_WITH_EXCEPTION?
 		if enforce && !pass {
 			return fmt.Errorf("source failed: policy level %d for %q. Must be one of %q", i, sourceURI, *pSources)
 		}
