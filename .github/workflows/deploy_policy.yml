@@ -1,0 +1,176 @@
+name: Deploy policy validation
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  workflow_call:
+    # TODO: only paass the contaimer image?
+    inputs:
+      image:
+        description: "The OCI image name. This must not include a tag or digest."
+        required: true
+        type: string
+      digest:
+        description: "The OCI image digest. The image digest of the form '<algorithm>:<digest>' (e.g. 'sha256:abcdef...')"
+        required: true
+        type: string
+      policy-path:
+        description: "The path to the policy, relative to GITHUB_WORKSPACE"
+        required: true
+        type: string
+      metadata-namespace:
+        description: "The namespace we want to deploy to"
+        required: false
+        type: string
+      metadata-labels:
+        description: "The labels the k8 resource should match against."
+        required: false
+        type: string
+      continue-on-error:
+        description: "Prevents a workflow run from failing when a job fails. Set to 'true' to allow a workflow run to pass when a job fails."
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      attestation-name:
+        description: "The artifact name of the signed deloy attestation. (A file with the intoto.jsonl extension)."
+        value: ${{ jobs.validate.outputs.attestation-name }}
+      # Note: we use this output because there is no built-in `outcome` and `result` is always `success`
+      # if `continue-on-error` is set to `true`.
+      outcome:
+        description: >
+          The outcome status of the run ('success' or 'failure').
+
+          Note: this is only set when `continue-on-error` is `true`.
+        value: ${{ jobs.final.outputs.outcome }}
+
+jobs:
+  # detect-env detects the reusable workflow's repository and ref for use later
+  # in the workflow.
+  detect-env:
+    outputs:
+      outcome: ${{ steps.final.outputs.outcome }}
+      repository: ${{ steps.detect.outputs.repository }}
+      ref: ${{ steps.detect.outputs.ref }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Needed to detect the current reusable repository and ref.
+    steps:
+      - name: Detect the generator ref
+        id: detect
+        continue-on-error: true
+        uses: slsa-framework/slsa-github-generator/.github/actions/detect-workflow-js@v1.9.0
+
+      - name: Final outcome
+        id: final
+        env:
+          SUCCESS: ${{ steps.detect.outcome != 'failure' }}
+        run: |
+          set -euo pipefail
+          echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
+
+  # verify provenance.
+  # TODO: make an Action for this.
+  verification:
+    outputs:
+      outcome: ${{ steps.final.outputs.outcome }}
+    runs-on: ubuntu-latest
+    needs: [detect-env]
+    permissions: read-all
+    steps:
+      - name: Checkout this repository
+        id: this_checkout
+        continue-on-error: true
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          repository: "${{ needs.detect-env.outputs.repository }}"
+          ref: "${{ needs.detect-env.outputs.ref }}"
+          token: "${{ github.token }}"
+          persist-credentials: false
+          fetch-depth: 1
+          directory: __THIS_REPO__
+      - name: Checkout the caller's repository
+        id: caller_checkout
+        continue-on-error: true
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          # TODO: Support arbitrary repository?
+          token: "${{ github.token }}"
+          persist-credentials: false
+          fetch-depth: 1
+          directory: __CALLER_REPO__
+      - name: Installer slsa-verifier
+        id: verifier_install
+        continue-on-error: true
+        uses: slsa-framework/slsa-verifier/actions/installer@73d1bcba982de0f644baec83df839399d13f472e # v2.4.0
+      # TODO: need an Action to install the engine.
+      - name: Compile the policy engine
+        id: engine_compile
+        continue-on-error: true
+        directory: __THIS_REPO__
+        run: |
+          set -euo pipefail
+          go mod vendor
+          go build -mod=vendor -trimpath -tags=netgo -o policy-verifier
+          chmod u+x policy-verifier
+      # NOTE: We assume the repository built from is the caller's repository for simplicity.
+      # This way we need not inspect every build provenance attestation.
+      - name: Verify provenance
+        id: provenance
+        continue-on-error: true
+        directory: __THIS_REPO__
+        env:
+          IMMUTABLE_IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
+        run: ./github/workflows/scripts/verify-provenance.sh
+      - name: Policy verification
+        id: policy
+        continue-on-error: true
+        env:
+          UNTRUSTED_USER_POLICY: "__CALLER_REPO__/${{ inputs.policy-path }}"
+          UNTRUSTED_REPOSITORY: "git+https://github.com/${GITHUB_REPOSITORY}"
+          UNTRUSTED_MUTABLE_IMAGE: "${{ inputs.image }}"
+          UNTRUSTED_BUILDER_ID: "${{ steps.provenance.outputs.builder_id }}"
+        run: ./github/workflows/scripts/verify-policy.sh
+      - name: Create attestation
+        id: attestation
+       env:
+          # TODO:need evaluation output to determine the logging part.
+          UNTRUSTED_USER_POLICY: "git+https://github.com/${GITHUB_REPOSITORY}/${{ inputs.policy-path }}"
+          UNTRUSTED_IMAGE: "${{ inputs.image }}"
+          UNTRUSTED_DIGEST: "${{ inputs.digest }}"
+          TRUSTED_VERIFIER: "git+https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/deploy_policy.yml@${{ needs.detect-env.outputs.ref }}"
+          UNTRUSTED_NAMESPACE: "${{ inputs.metadata-namespace }}"
+          UNTRUSTED_LABELS: "${{ inputs.metadata-labels }}"
+          SUCCESS: ${{ steps.provenance == 'success' && steps.policy.outcome == 'success' }}
+        run: ./github/workflows/scripts/create-attestation.sh
+      - name: Final outcome
+        id: final
+        env:
+          SUCCESS: ${{ steps.attestation.outcome != 'failure' && steps.policy.outcome != 'failure' && steps.provenance.outcome != 'failure' && steps.engine_compile.outcome != 'failure' && steps.verifier_install.outcome != 'failure' && steps.caller_checkout.outcome != 'failure' && steps.this_checkout.outcome != 'failure' }}
+        run: |
+          set -euo pipefail
+          echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
+
+  # final fails or succeeds based on the value of `inputs.continue-on-error`
+  # and the outcome of previous jobs.
+  final:
+    outputs:
+      outcome: ${{ steps.final.outputs.outcome }}
+    runs-on: ubuntu-latest
+    needs: [detect-env, generator]
+    # Note: always run even if needed jobs are skipped.
+    if: always()
+    steps:
+      - name: Final outcome
+        id: final
+        env:
+          SUCCESS: ${{ needs.detect-env.outputs.outcome != 'failure' && needs.generator.outputs.outcome != 'failure' }}
+          CONTINUE: ${{ inputs.continue-on-error }}
+        run: |
+          set -euo pipefail
+          echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
+          [ "$CONTINUE" == "true" ] || [ "$SUCCESS" == "true" ] || exit 27
