@@ -2,6 +2,7 @@ package policy
 
 import (
 	internal "github.com/laurentsimon/slsa-e2e/pkg/policy/internal"
+	"github.com/laurentsimon/slsa-e2e/pkg/policy/results"
 )
 
 // Policy defineds a policy.
@@ -21,6 +22,6 @@ func FromFiles(files []string) (*Policy, error) {
 }
 
 // Evaluate evaluates the policy.
-func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) error {
+func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) results.Verification {
 	return p.policy.Evaluate(sourceURI, imageURI, builderID)
 }

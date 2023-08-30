@@ -1,32 +1,18 @@
 {
     "version": 1,
-    "tracks": {
-        "build": {
-            "builders": [
+    "defaults": {
+       "mode": "audit",
+       "sources": [
+            {
+                "uri": "git+https://github.com/googlenot/repo2"
+            }
+        ],
+        "images": {
+            "list": [
                 {
-                    "id": "https://github.com/another/org/.github/workflows/generator_container_slsa3.yml",
-                    "level": 2
+                    "uri": "docker://nogoogle/*"
                 }
             ]
-        }
-    },
-    "images": [
-        {
-            "uri": "docker://googlenot/myimage:v*"
-        },
-        {
-            "uri": "docker://googlecloud/*"
-        }
-    ],
-    "sources": [
-        {
-            "uri": "git+https://github.com/googlenot/repo1"
-        }
-    ],
-    "deployement": {
-        "metadata": {
-            "namespace": "${{ inputs.metadata-namespace }}",
-            "labels": "${{ inputs.metadata-labels }}"
         }
     }
 }

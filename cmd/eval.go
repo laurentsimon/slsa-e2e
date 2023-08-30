@@ -44,10 +44,12 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
-		if err := pol.Evaluate(sourceURI, imageURI, builderID); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to evaluate: %v\n", err)
+		result := pol.Evaluate(sourceURI, imageURI, builderID)
+		if result.Fail() {
+			fmt.Fprintf(os.Stderr, "failed to verify: %v\n", result)
 			os.Exit(1)
 		}
+		fmt.Fprintf(os.Stderr, "%v\n", result)
 	},
 }
 

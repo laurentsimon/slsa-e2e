@@ -1,85 +1,75 @@
 {
     "version": 1,
-    "tracks": {
-        "build": {
-            "builders": [
-                {
-                    "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml",
-                    "level": 3
-                },
-                {
-                    "id": "https://cloudbuild.googleapis.com/GoogleHostedWorker",
-                    "level": 3
-                }
-            ]
+    "defaults": {
+        "mode": "audit",
+        "tracks": {
+            "build": {
+                "builders": [
+                    {
+                        "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml",
+                        "level": 3
+                    },
+                    {
+                        "id": "https://cloudbuild.googleapis.com/GoogleHostedWorker",
+                        "level": 3
+                    }
+                ]
+            },
+            "source": {
+                "attestors": [
+                    {
+                        "id": "https://github.com/source-attestor"
+                    },
+                    {
+                        "id": "https://cloudbuild.googleapis.com/GoogleSourceAttestor"
+                    }
+                ]
+            }
         },
-        "source": {
-            "attestors": [
+        "sources": [
+            {
+                "uri": "git+https://github.com/google/*"
+            },
+            {
+                "uri": "git+https://github.com/googlecloudplatform/*"
+            }
+        ],
+        "images": {
+            "mode": "audit",
+            "list": [
                 {
-                    "id": "https://github.com/source-attestor",
-                    "authoritativeFor": [
-                        "git+https://github.com/*"
-                    ]
+                    "uri": "docker://googlenot/*"
                 },
                 {
-                    "id": "https://cloudbuild.googleapis.com/GoogleSourceAttestor",
-                    "authoritativeFor": [
-                        "git+https://git.googlecloud.com/*"
-                    ]
+                    "uri": "gcr.io/google/*"
+                },
+                {
+                    "uri": "ghcr.io/google/*"
                 }
             ]
         }
     },
-    "images": [
-        {
-            "uri": "docker://google/*"
-        },
-        {
-            "uri": "docker://googlecloud/*"
-        }
-    ],
-    "sources": [
-        {
-            "uri": "git+https://github.com/google/*"
-        },
-        {
-            "uri": "git+https://github.com/googlecloudplatform/*"
-        }
-    ],
-    "enforcement": {
-        "onViolation": "allow",
-        "logOn": [
-            "deny", "allow"
-        ],
-        "overwrite": {
-            "default": "deny",
-            "exceptions": [
-                {
-                    "sources": [
+    "exceptions": {
+        "mode": "audit",
+        "list": [
+            {
+                "sources": [
+                    {
+                        "uri": "git+https://github.com/googlenot/*"
+                    },
+                    {
+                        "uri": "git+https://github.com/googlecloudplatform/*"
+                    }
+                ],
+                "images": {
+                    "mode": "enforce",
+                    "list": [
                         {
-                            "uri": "git+https://github.com/googlenot/*"
-                        },
-                        {
-                            "uri": "git+https://github.com/google/special2"
+                            "uri": "docker://notgoogle/*"
                         }
-                    ],
-                    "reason": "special repos",
-                    "overwrite": "allow",
-                    "onViolation": "deny"
-                },
-                {
-                    "sources": [
-                        {
-                            "uri": "git+https://github.com/another/repo1"
-                        },
-                        {
-                            "uri": "git+https://github.com/another/repo2"
-                        }
-                    ],
-                    "reason": "other repos",
-                    "overwrite": "allow"
+                    ]
                 }
-            ]
-        }
+            }
+        ]
     }
 }
