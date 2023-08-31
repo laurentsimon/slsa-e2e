@@ -1,18 +1,39 @@
 {
     "version": 1,
     "defaults": {
-       "mode": "audit",
+       "mode": "enforce",
        "sources": [
             {
-                "uri": "git+https://github.com/googlenot/repo2"
+                "uri": "git+https://github.com/googlenot/repo1"
             }
         ],
         "images": {
+            "mode": "enforce",
             "list": [
                 {
-                    "uri": "docker://nogoogle/*"
+                    "uri": "docker://googlenot/*"
                 }
             ]
         }
+    },
+    "exceptions": {
+        "mode": "enforce",
+        "list": [
+            {
+                "sources": [
+                    {
+                        "uri": "git+https://github.com/googlenot/*"
+                    }
+                ],
+                "images": {
+                    "mode": "enforce",
+                    "list": [
+                        {
+                            "uri": "docker://googlenot/*"
+                        }
+                    ]
+                }
+            }
+        ]
     }
 }

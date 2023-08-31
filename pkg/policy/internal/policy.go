@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/laurentsimon/slsa-e2e/pkg/policy/internal/utils/pointer"
 	"github.com/laurentsimon/slsa-e2e/pkg/policy/results"
 )
 
@@ -40,11 +38,11 @@ const (
 	ModeEnforce = "enforce"
 )
 
-type Context string
+type context string
 
 const (
-	ContextOrg  = "org"
-	ContextRepo = "repo"
+	contextOrg  = "org"
+	contextRepo = "repo"
 )
 
 type Tracks struct {
@@ -97,8 +95,8 @@ func FromBytes(content [][]byte) (*Policy, error) {
 		}
 	}
 
-	val, _ := json.MarshalIndent(policies, "", "  ")
-	fmt.Println(string(val))
+	// val, _ := json.MarshalIndent(policies, "", "  ")
+	// fmt.Println(string(val))
 	return &Policy{
 		policies: policies,
 	}, nil
@@ -137,10 +135,10 @@ func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) results.Verific
 	}
 
 	//TOTEST: combination of enforce / audit in parent / child. Also empty sources.
-	result := p.verifySources(sourceURI)
-	if !result.Pass() {
-		return result
-	}
+	// result := p.verifySources(sourceURI)
+	// if !result.Pass() {
+	// 	return result
+	// }
 
 	// NOTE: sourceURI serves as an identifier.
 	// result = p.verifyImages(sourceURI, imageURI)
@@ -152,142 +150,277 @@ func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) results.Verific
 	// 	return err
 	// }
 
+	result := p.verify(sourceURI, imageURI)
+	if !result.Pass() {
+		return result
+	}
+
 	// TODO: source track.
 
 	return results.VerificationPass()
+}
+
+func (p *Policy) verify(sourceURI, imageURI string) results.Verification {
+	//TODO: validate inputs dont containt '*'
+
+	// Try the default policy first.
+	orgPolicy := p.policies[0]
+	orgDefaultMode := orgPolicy.Defaults.Mode
+	result := results.VerificationFail(fmt.Errorf("policy violation"))
+
+	if len(orgPolicy.Defaults.Sources) == 0 {
+		return results.VerificationInvalid(fmt.Errorf("%q policy: no sources defined %q", contextRepo))
+	}
+
+	for i := range orgPolicy.Defaults.Sources {
+		orgSource := &orgPolicy.Defaults.Sources[i]
+		orgURI := orgSource.URI
+		fmt.Println(orgURI, sourceURI)
+		if !Glob(orgURI, sourceURI) {
+			continue
+		}
+
+		fmt.Println("OK", orgURI, sourceURI)
+		// We have a match on the source.
+
+		// 1. Verify the org images.
+		orgImages := orgPolicy.Defaults.Images.List
+		orgImageMode := mode(orgDefaultMode, orgPolicy.Defaults.Images.Mode)
+		ok := verifyOrgDefaultImages(orgImages, orgImageMode, imageURI)
+		if !ok {
+			if orgImageMode != ModeAudit {
+				return results.VerificationFail(fmt.Errorf("%q: image uri mismatch: %q", contextOrg, imageURI))
+			}
+			return results.VerificationAudit(fmt.Sprintf("%q: image uri mismatch: %q", contextOrg, imageURI))
+		}
+
+		// Verify the repo policy.
+		repoPolicy := p.policies[1]
+		repoDefaultMode := mode(orgDefaultMode, &repoPolicy.Defaults.Mode)
+		if orgDefaultMode == ModeEnforce && repoDefaultMode == ModeAudit {
+			return results.VerificationInvalid(fmt.Errorf("%q policy: cannot overwrite %q", contextRepo, "mode"))
+		}
+
+		var repoSourceMatch bool
+		var repoImageMatch bool
+
+		// Image verification.
+		repoImageMode := mode(orgImageMode, &repoPolicy.Defaults.Mode)
+		if len(repoPolicy.Defaults.Sources) == 0 {
+			repoImageMatch = true
+		} else {
+			for j := range repoPolicy.Defaults.Sources {
+				repoSource := &repoPolicy.Defaults.Sources[j]
+				repoURI := repoSource.URI
+				if !Glob(repoURI, sourceURI) {
+					continue
+				}
+
+				// Source match.
+				repoSourceMatch = true
+
+				// 1.1 Verify the default repo images.
+				if repoPolicy.Defaults.Images.Mode != nil {
+					repoImageMode = mode(orgImageMode, repoPolicy.Defaults.Images.Mode)
+				}
+				if orgImageMode == ModeEnforce && repoImageMode == ModeAudit {
+					return results.VerificationInvalid(fmt.Errorf("%q policy: cannot overwrite images %q", contextRepo, "mode"))
+				}
+				repoImageMatch = verifyRepoDefaultImages(repoPolicy, repoImageMode, imageURI)
+				if !repoImageMatch {
+					if repoImageMode != ModeAudit {
+						continue
+					}
+				}
+
+				// 1.2 Verify other default settings.
+			}
+		}
+
+		if !repoSourceMatch {
+			if repoDefaultMode == ModeEnforce {
+				return results.VerificationFail(fmt.Errorf("%q policy: source uri mismatch: %q", contextRepo, imageURI))
+			}
+
+			// TODO: Try projects instead and set repoImageMatch.
+			return results.VerificationAudit(fmt.Sprintf("%q policy: source uri mismatch: %q", contextRepo, imageURI))
+		}
+		if !repoImageMatch {
+			if repoImageMode == ModeEnforce {
+				return results.VerificationFail(fmt.Errorf("%q policy: image uri mismatch: %q", contextRepo, imageURI))
+			}
+			return results.VerificationAudit(fmt.Sprintf("%q policy: image uri mismatch: %q", contextRepo, imageURI))
+		}
+
+		return results.VerificationPass()
+	}
+
+	return result
+}
+
+func verifyRepoDefaultImages(repoPolicy PolicyElement, repoImageMode Mode, imageURI string) bool {
+	repoImages := repoPolicy.Defaults.Images.List
+	if len(repoImages) == 0 {
+		return true
+	}
+
+	for j := range repoImages {
+		repoImage := &repoImages[j]
+		repoURI := repoImage.URI
+		if Glob(repoURI, imageURI) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func verifyOrgDefaultImages(orgImages []Resource, orgImageMode Mode, imageURI string) bool {
+	if len(orgImages) != 0 {
+		var imagePass bool
+		for j := range orgImages {
+			orgImage := &orgImages[j]
+			orgURI := orgImage.URI
+			if Glob(orgURI, imageURI) {
+				imagePass = true
+				break
+			}
+		}
+		if !imagePass {
+			return false
+		}
+	}
+	return true
 }
 
 // func (p *Policy) verifyImages(sourceURI, imageURI string) results.Verification {
 // 	if strings.Contains(imageURI, "*") {
 // 		return results.VerificationFail(fmt.Errorf("invalid imageURI: %q", imageURI))
 // 	}
-
-// 	result, effectiveMode := verifyImage(sourceURI, imageURI, "org", nil, p.policies[0])
-// 	if result.Fail() {
-// 		return result
+// 	orgResult, effectiveMode := verifyImage(sourceURI, imageURI, ContextOrg, nil, p.policies[0])
+// 	if orgResult.Fail() {
+// 		return orgResult
 // 	}
-// 	result, _ = verifyImage(sourceURI, imageURI, "repo", &effectiveMode, p.policies[1])
 
-// 	return result
+// 	repoResult, _ := verifyImage(sourceURI, imageURI, ContextRepo, &effectiveMode, p.policies[1])
+// 	if repoResult.Fail() {
+// 		return repoResult
+// 	}
+// 	// If the policy does not pass, return it.
+// 	if !repoResult.Pass() {
+// 		return repoResult
+// 	}
+// 	if !orgResult.Pass() {
+// 		return orgResult
+// 	}
+// 	return results.VerificationPass()
 // }
 
 // func verifyImage(sourceURI, imageURI string, context Context, effectiveMode *Mode, policy PolicyElement) (results.Verification, Mode) {
 // 	failedResult := results.VerificationFail(fmt.Errorf("%q policy: image uri mismatch: %q", context, imageURI))
+// 	invalidModeResult := results.VerificationInvalid(fmt.Errorf("%q policy: cannot overwrite %q", context, "mode"))
+// 	invalidSourcesResult := results.VerificationInvalid(fmt.Errorf("%q policy: wources is empty %q", context))
 // 	result := failedResult
 // 	// Update the effective mode only if it further restricts the policy (audit -> enforce).
-// 	if effectiveMode == nil || *effectiveMode == ModeAudit {
-// 		effectiveMode = pointer.To(Mode(policy.Defaults.Mode))
+// 	if !canUpdateMode(effectiveMode, policy.Defaults.Mode) {
+// 		return invalidModeResult, *effectiveMode
 // 	}
+// 	callerMode := effectiveMode
+// 	effectiveMode = pointer.To(Mode(policy.Defaults.Mode))
 
 // 	// Try the default policy first.
-// 	images := policy.Defaults.Images.List
-// 	exist := contains(images, imageURI)
-// 	if exist {
-// 		result = results.VerificationPass()
+// 	// We match on the source URIs to find an entry match.
+// 	sources := policy.Defaults.Sources
+// 	if len(sources) == 0 {
+// 		fmt.Println(context, "no source")
+// 		if context == ContextOrg {
+// 			return invalidSourcesResult, *effectiveMode
+// 		}
 // 	} else {
-// 		result = failedResult
+// 		exist := contains(sources, sourceURI)
+// 		if exist {
+// 			images := policy.Defaults.Images.List
+// 			exist := contains(images, imageURI)
+// 			if exist || (len(images) == 0 && context == ContextRepo) {
+// 				result = results.VerificationPass()
+// 			} else {
+// 				fmt.Println("failed2:", context, *effectiveMode)
+// 				result = failedResult
+// 				if policy.Exceptions == nil && policy.Defaults.Images.Mode != nil {
+// 					if !canUpdateMode(effectiveMode, *policy.Defaults.Images.Mode) {
+// 						return invalidModeResult, *effectiveMode
+// 					}
+// 					effectiveMode = pointer.To(Mode(mode(*effectiveMode, policy.Defaults.Images.Mode)))
+// 				}
+// 			}
+// 		} else {
+// 			fmt.Println("failed3:", context, *effectiveMode)
+// 			result = failedResult
+// 		}
 // 	}
 
-// 	// // Verification failed. Try the exception list.
-// 	// if policy.Exceptions != nil {
-// 	// 	exceptions := policy.Exceptions.List
-// 	// 	for i := range exceptions {
-// 	// 		exception := &exceptions[i]
-// 	// 		sources := exception.Sources
-// 	// 		exist := contains(sources, sourceURI)
-// 	// 		if exist {
-// 	// 			// We found a match. Update the result and the effctive mode.
-// 	// 			result = results.VerificationPass()
-// 	// 			effectiveMode = pointer.To(Mode(mode(policy.Defaults.Mode, policy.Exceptions.Mode)))
-// 	// 		}
-// 	// 	}
-// 	// }
+// 	// Verification failed. Try the exception list.
+// 	if policy.Exceptions != nil {
+// 		// Update the mode if it des not violate the caller's mode.
+// 		fmt.Println(context, *effectiveMode)
+// 		effectiveMode = pointer.To(Mode(mode(*effectiveMode, callerMode)))
+// 		exceptions := policy.Exceptions.List
+// 		for i := range exceptions {
+// 			exception := &exceptions[i]
+// 			images := exception.Images.List
+// 			exist := contains(images, imageURI)
+// 			if exist {
+// 				// We found a match. Update the result and the effective mode.
+// 				defaultMode := pointer.To(Mode(mode(*effectiveMode, policy.Exceptions.Mode)))
+// 				newMode := pointer.To(Mode(mode(*defaultMode, exception.Images.Mode)))
+// 				// The org policy can overwrite the mode.
+// 				if context == ContextOrg {
+// 					result = results.VerificationPass()
+// 					*effectiveMode = *newMode
+// 					continue
+// 				}
+// 				// The repo policy cannot overwrite an org policy.
+// 				if context == ContextRepo && !canUpdateMode(effectiveMode, *defaultMode) {
+// 					result = invalidModeResult
+// 				} else {
+// 					result = results.VerificationPass()
+// 					*effectiveMode = *newMode
+// 				}
+// 			}
+// 		}
+// 	}
 
-// 	// // Handle failure.
-// 	// if result.Fail() {
-// 	// 	// If the mode is audit, we pass but as an audit result.
-// 	// 	if policy.Defaults.Mode == ModeAudit {
-// 	// 		if *effectiveMode != ModeAudit {
-// 	// 			result = results.VerificationInvalid(fmt.Errorf("%q policy: cannot overwrite %q", context, "mode"))
-// 	// 		} else if policy.Defaults.Mode == ModeAudit {
-// 	// 			result = results.VerificationAudit(fmt.Sprintf("%q policy: source uri mismatch: %q", context, sourceURI))
-// 	// 		}
-// 	// 	}
-// 	// 	return result, *effectiveMode
-// 	// }
+// 	fmt.Println(context, *effectiveMode)
+// 	// Handle failure.
+// 	if result.Fail() && *effectiveMode == ModeAudit {
+// 		result = results.VerificationAudit(fmt.Sprintf("%q policy: source uri mismatch: %q", context, imageURI))
+// 		return result, *effectiveMode
+// 	}
 // 	return result, *effectiveMode
 // }
 
-func (p *Policy) verifySources(sourceURI string) results.Verification {
-	if strings.Contains(sourceURI, "*") {
-		return results.VerificationFail(fmt.Errorf("invalid sourceURI: %q", sourceURI))
-	}
+// func (p *Policy) verifySources(sourceURI string) results.Verification {
+// 	if strings.Contains(sourceURI, "*") {
+// 		return results.VerificationFail(fmt.Errorf("invalid sourceURI: %q", sourceURI))
+// 	}
 
-	orgResult, effectiveMode := verifySource(sourceURI, ContextOrg, nil, p.policies[0])
-	if orgResult.Fail() {
-		return orgResult
-	}
-	repoResult, _ := verifySource(sourceURI, ContextRepo, &effectiveMode, p.policies[1])
-	if repoResult.Fail() {
-		return repoResult
-	}
-	// If the policy does not pass, return it.
-	if !repoResult.Pass() {
-		return repoResult
-	}
-	if !orgResult.Pass() {
-		return orgResult
-	}
-	return results.VerificationPass()
-}
-
-func verifySource(sourceURI string, context Context, effectiveMode *Mode, policy PolicyElement) (results.Verification, Mode) {
-	failedResult := results.VerificationFail(fmt.Errorf("%q policy: source uri mismatch: %q", context, sourceURI))
-	invalidResult := results.VerificationInvalid(fmt.Errorf("%q policy: cannot overwrite %q", context, "mode"))
-	result := failedResult
-	// Update the effective mode only if it further restricts the policy (audit -> enforce).
-	if !canUpdateMode(effectiveMode, policy.Defaults.Mode) {
-		return invalidResult, *effectiveMode
-	}
-	effectiveMode = pointer.To(Mode(policy.Defaults.Mode))
-
-	// Try the default policy first.
-	sources := policy.Defaults.Sources
-	exist := contains(sources, sourceURI)
-	// Repo policy need not populate the field.
-	if exist || (len(sources) == 0 && context == ContextRepo) {
-		result = results.VerificationPass()
-	} else {
-		result = failedResult
-	}
-
-	// Verification failed. Try the exception list.
-	if policy.Exceptions != nil {
-		exceptions := policy.Exceptions.List
-		for i := range exceptions {
-			exception := &exceptions[i]
-			sources := exception.Sources
-			exist := contains(sources, sourceURI)
-			if exist {
-				// We found a match. Update the result and the effective mode.
-				newMode := pointer.To(Mode(mode(policy.Defaults.Mode, policy.Exceptions.Mode)))
-				if context == ContextRepo && !canUpdateMode(effectiveMode, *newMode) {
-					result = results.VerificationInvalid(fmt.Errorf("%q policy: cannot overwrite %q", context, "mode"))
-				} else {
-					result = results.VerificationPass()
-					*effectiveMode = *newMode
-				}
-			}
-		}
-	}
-
-	// Handle failure.
-	if result.Fail() && *effectiveMode == ModeAudit {
-		result = results.VerificationAudit(fmt.Sprintf("%q policy: source uri mismatch: %q", context, sourceURI))
-		return result, *effectiveMode
-	}
-	return result, *effectiveMode
-}
+// 	orgResult, effectiveMode := verifySource(sourceURI, ContextOrg, nil, p.policies[0])
+// 	if orgResult.Fail() {
+// 		return orgResult
+// 	}
+// 	repoResult, _ := verifySource(sourceURI, ContextRepo, &effectiveMode, p.policies[1])
+// 	if repoResult.Fail() {
+// 		return repoResult
+// 	}
+// 	// If the policy does not pass, return it.
+// 	if !repoResult.Pass() {
+// 		return repoResult
+// 	}
+// 	if !orgResult.Pass() {
+// 		return orgResult
+// 	}
+// 	return results.VerificationPass()
+// }
 
 func canUpdateMode(cur *Mode, n Mode) bool {
 	if cur != nil && *cur == ModeEnforce && n == ModeAudit {

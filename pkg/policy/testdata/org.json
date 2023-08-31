@@ -28,28 +28,15 @@
         },
         "sources": [
             {
-                "uri": "git+https://github.com/google/*"
+                "uri": "git+https://github.com/googlenot/*"
             },
             {
                 "uri": "git+https://github.com/googlecloudplatform/*"
             }
-        ],
-        "images": {
-            "mode": "audit",
-            "list": [
-                {
-                    "uri": "docker://googlenot/*"
-                },
-                {
-                    "uri": "gcr.io/google/*"
-                },
-                {
-                    "uri": "ghcr.io/google/*"
-                }
-            ]
-        }
+        ]
+        
     },
-    "exceptions": {
+    "projects": {
         "mode": "audit",
         "list": [
             {
@@ -62,10 +49,10 @@
                     }
                 ],
                 "images": {
-                    "mode": "enforce",
+                    "mode": "audit",
                     "list": [
                         {
-                            "uri": "docker://notgoogle/*"
+                            "uri": "docker://googlenot/*"
                         }
                     ]
                 }
