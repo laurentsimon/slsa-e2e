@@ -26,6 +26,14 @@
                 ]
             }
         },
+        "images": {
+            "mode": "enforce",
+            "list": [
+                {
+                    "uri": "docker://googlenot/*"
+                }
+            ]
+        },
         "sources": [
             {
                 "uri": "git+https://github.com/googlenot/*"
@@ -35,28 +43,5 @@
             }
         ]
         
-    },
-    "projects": {
-        "mode": "audit",
-        "list": [
-            {
-                "sources": [
-                    {
-                        "uri": "git+https://github.com/googlenot/*"
-                    },
-                    {
-                        "uri": "git+https://github.com/googlecloudplatform/*"
-                    }
-                ],
-                "images": {
-                    "mode": "audit",
-                    "list": [
-                        {
-                            "uri": "docker://googlenot/*"
-                        }
-                    ]
-                }
-            }
-        ]
     }
 }

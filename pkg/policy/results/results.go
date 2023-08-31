@@ -56,6 +56,10 @@ func (v Verification) Audit() bool {
 	return v.status == verificationStatusAudit
 }
 
+func (v Verification) Invalid() bool {
+	return v.status == verificationStatusInvalid
+}
+
 func (v Verification) String() string {
 	switch v.status {
 	case verificationStatusPass:

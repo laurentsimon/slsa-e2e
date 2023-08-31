@@ -4,20 +4,23 @@
        "mode": "enforce",
        "sources": [
             {
-                "uri": "git+https://github.com/googlenot/repo1"
+                "uri": "git+https://github.com/googlenot/repo2"
             }
         ],
         "images": {
             "mode": "enforce",
             "list": [
                 {
-                    "uri": "docker://googlenot/*"
+                    "uri": "docker://googlenot2/*"
+                },
+                {
+                    "uri": "docker://googlenot3/*"
                 }
             ]
         }
     },
     "exceptions": {
-        "mode": "enforce",
+        "mode": "audit",
         "list": [
             {
                 "sources": [
@@ -26,10 +29,10 @@
                     }
                 ],
                 "images": {
-                    "mode": "enforce",
+                    "mode": "audit",
                     "list": [
                         {
-                            "uri": "docker://googlenot/*"
+                            "uri": "docker://googlenot2/*"
                         }
                     ]
                 }
