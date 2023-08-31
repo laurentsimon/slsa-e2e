@@ -3,10 +3,14 @@
     "projects": [
         {
             "source": {
-                "uri": "git+https://github.com/googlenot2/*"
+                "uri": "git+https://github.com/googlenot/repo1"
             },
             "image": {
-                "uri": "docker://googlenot/*"
+                "uri": "docker://googlenot/myimage:v1.2.3"
+            },
+            "deployment": {
+                "namespace": "${{ inputs.metadata-namespace }}",
+                "labels": "${{ inputs.metadata-labels }}"
             }
         }
     ]

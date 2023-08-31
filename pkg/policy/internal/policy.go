@@ -137,11 +137,11 @@ func validateRepoPolicy(p RepoPolicy) error {
 
 func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) results.Verification {
 	// Try the default policy first.
-	orgDefault := p.verifyOrgDefault(sourceURI, imageURI)
+	orgDefault := p.verifyOrgDefault(sourceURI, imageURI, builderID)
 	return orgDefault
 }
 
-func (p *Policy) verifyOrgDefault(sourceURI, imageURI string) results.Verification {
+func (p *Policy) verifyOrgDefault(sourceURI, imageURI, builderID string) results.Verification {
 	// Sources are validated and are non-empty.
 	for i := range p.orgPolicy.Defaults.Sources {
 		orgSource := &p.orgPolicy.Defaults.Sources[i]
@@ -158,7 +158,11 @@ func (p *Policy) verifyOrgDefault(sourceURI, imageURI string) results.Verificati
 			return results.VerificationFail(fmt.Errorf("%q: image uri mismatch: %q", contextOrg, imageURI))
 		}
 
-		// 2. verify org XXX.
+		// 2. verify org build track.
+		ok = verifyBuildTrack(p.orgPolicy.Defaults.Tracks.Build.Builders, builderID)
+		if !ok {
+			return results.VerificationFail(fmt.Errorf("%q: builder ID mismatch: %q", contextOrg, builderID))
+		}
 
 		// Verify the repo policy.
 		ok, err := verifyRepoProjects(p.repoPolicy, sourceURI, imageURI)
@@ -190,10 +194,25 @@ func verifyRepoProjects(repoPolicy RepoPolicy, sourceURI, imageURI string) (bool
 
 func verifyRepoEntry(project Project, sourceURI, imageURI string) bool {
 	sourceMatch := project.Source.URI == "" || Glob(project.Source.URI, sourceURI)
-	imageMatch := Glob(project.Image.URI, imageURI)
+	imageMatch := project.Image.URI == "" || Glob(project.Image.URI, imageURI)
 	return sourceMatch && imageMatch
 }
 
+func verifyBuildTrack(builders []Builder, builderID string) bool {
+	if len(builders) == 0 {
+		return true
+	}
+	for j := range builders {
+		b := &builders[j]
+		bid := b.ID
+		if Glob(bid, builderID) {
+			return true
+		}
+	}
+
+	return false
+
+}
 func verifyEntryResource(resources []Resource, resourceURI string) bool {
 	if len(resources) == 0 {
 		return true

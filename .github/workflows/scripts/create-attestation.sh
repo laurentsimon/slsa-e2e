@@ -38,10 +38,6 @@ cat <<EOF | jq | tee attestation.deploy
             "uri": "${UNTRUSTED_USER_POLICY}",
         },
         "verificationResult": "${verification_result}",
-        "logging": {
-            "level": "${level}",
-            "message": "${message}"
-        },
         "metadata": {
             "namespace": "${UNTRUSTED_NAMESPACE}",
             "labels": {
