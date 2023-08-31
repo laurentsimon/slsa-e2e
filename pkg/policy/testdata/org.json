@@ -1,7 +1,6 @@
 {
     "version": 1,
     "defaults": {
-        "mode": "audit",
         "tracks": {
             "build": {
                 "builders": [
@@ -26,14 +25,11 @@
                 ]
             }
         },
-        "images": {
-            "mode": "enforce",
-            "list": [
-                {
-                    "uri": "docker://googlenot/*"
-                }
-            ]
-        },
+        "images": [
+            {
+                "uri": "docker://googlenot/*"
+            }
+        ],
         "sources": [
             {
                 "uri": "git+https://github.com/googlenot/*"
@@ -42,6 +38,5 @@
                 "uri": "git+https://github.com/googlecloudplatform/*"
             }
         ]
-        
     }
 }
