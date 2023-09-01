@@ -71,10 +71,10 @@ jobs:
   # verify provenance.
   # TODO: make an Action for this.
   verification:
+    needs: [detect-env]
     outputs:
       outcome: ${{ steps.final.outputs.outcome }}
     runs-on: ubuntu-latest
-    needs: [detect-env]
     permissions: read-all
     steps:
       - name: Checkout this repository
