@@ -12,9 +12,6 @@ verification_result="FAILED"
 if [[ "${SUCCESS}" == "true" ]]; then
     verification_result="PASSED"
 fi
-level="info"
-message="SLSA: deployement verification success"
-# TODO: support dynamic message / level.
 
 cat <<EOF | jq | tee attestation.deploy
 {
