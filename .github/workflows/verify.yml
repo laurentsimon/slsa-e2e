@@ -1,6 +1,6 @@
 name: Deploy policy validation
-permissions:
-  contents: read
+
+permissions: read-all
 
 defaults:
   run:
@@ -75,7 +75,6 @@ jobs:
     outputs:
       outcome: ${{ steps.final.outputs.outcome }}
     runs-on: ubuntu-latest
-    permissions: read-all
     steps:
       - name: Checkout this repository
         id: this_checkout
