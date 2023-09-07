@@ -58,5 +58,4 @@ jq <vsa.json
 # https://github.com/sigstore/cosign/pull/2994 
 cosign attest --yes --type custom --predicate vsa.json  "${UNTRUSTED_IMAGE}@${UNTRUSTED_DIGEST}"
 
-
 # caller will use attach

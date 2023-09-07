@@ -175,6 +175,7 @@ jobs:
         working-directory: __THIS_REPO__
         env:
           IMMUTABLE_IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
+        # NOTE: slsa-verifier ensures digest hash the proper format and is non-empty.
         run: ./.github/workflows/scripts/verify-provenance.sh
       - name: Policy verification
         id: policy
