@@ -23,6 +23,7 @@ provenance=$(slsa-verifier verify-image "${IMMUTABLE_IMAGE}" \
 
 if [[ "${provenance}" != "" ]]; then
     echo "builder_id=${builder_id}" >> "$GITHUB_OUTPUT"
+    echo "source_uri=git+https://github.com/${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"
     exit 0
 fi
 
@@ -34,6 +35,7 @@ provenance=$(slsa-verifier verify-image "${IMMUTABLE_IMAGE}" \
 
 if [[ "${provenance}" != "" ]]; then
     echo "builder_id=${builder_id}" >> "$GITHUB_OUTPUT"
+    echo "source_uri=git+https://github.com/${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"
     exit 0
 fi
 

@@ -90,7 +90,7 @@ jobs:
           token: "${{ github.token }}"
           persist-credentials: false
           fetch-depth: 1
-          directory: __THIS_REPO__
+          path: __THIS_REPO__
       - name: Checkout the caller's repository
         id: caller_checkout
         continue-on-error: true
@@ -100,7 +100,7 @@ jobs:
           token: "${{ github.token }}"
           persist-credentials: false
           fetch-depth: 1
-          directory: __CALLER_REPO__
+          path: __CALLER_REPO__
       - name: Installer slsa-verifier
         id: verifier_install
         continue-on-error: true
@@ -127,14 +127,17 @@ jobs:
       - name: Policy verification
         id: policy
         continue-on-error: true
+        working-directory: __THIS_REPO__
         env:
-          UNTRUSTED_USER_POLICY: "__CALLER_REPO__/${{ inputs.policy-path }}"
-          UNTRUSTED_REPOSITORY: "git+https://github.com/${GITHUB_REPOSITORY}"
+          UNTRUSTED_USER_POLICY: "../__CALLER_REPO__/${{ inputs.policy-path }}"
+          UNTRUSTED_REPOSITORY: "${{ steps.provenance.outputs.builder_id }}"
           UNTRUSTED_MUTABLE_IMAGE: "${{ inputs.image }}"
           UNTRUSTED_BUILDER_ID: "${{ steps.provenance.outputs.builder_id }}"
         run: ./github/workflows/scripts/verify-policy.sh
       - name: Create attestation
         id: attestation
+        continue-on-error: true
+        working-directory: __THIS_REPO__
         env:
           # TODO:need evaluation output to determine the logging part.
           UNTRUSTED_USER_POLICY: "git+https://github.com/${GITHUB_REPOSITORY}/${{ inputs.policy-path }}"
