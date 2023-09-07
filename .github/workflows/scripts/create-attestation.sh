@@ -28,7 +28,7 @@ cat <<EOF | jq > vsa.json
     "predicateType": "https://slsa.dev/verification_summary/v1",
     "predicate": {
         "verifier": {
-            "id": "${TRUSTED_POLICY_ENTITY}"
+            "id": "${TRUSTED_VERIFIER}"
         },
         "time_verified": "${time_verified}",
          "policy": {
