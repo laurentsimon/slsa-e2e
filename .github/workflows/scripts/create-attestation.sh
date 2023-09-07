@@ -6,14 +6,14 @@ source .github/workflows/common.sh
 
 digest_type=$(echo "${UNTRUSTED_DIGEST}" | cut -d@ -f1)
 digest_value=$(echo "${UNTRUSTED_DIGEST}" | cut -d@ -f2)
-time_verified=$(Tue Aug 29 10:29:23 PM UTC 2023)
+time_verified=$(date)
 
 verification_result="FAILED"
 if [[ "${SUCCESS}" == "true" ]]; then
     verification_result="PASSED"
 fi
 
-cat <<EOF | jq | tee attestation.deploy
+cat <<EOF | jq | tee vsa.json
 {
     "_type": "https://in-toto.io/Statement/v0.1",
     "subject": [
@@ -25,7 +25,7 @@ cat <<EOF | jq | tee attestation.deploy
             }
         }
     ],
-    "predicateType": "https://slsa.dev/deploy/k8/v0.1",
+    "predicateType": "https://slsa.dev/verification_summary/v1",
     "predicate": {
         "verifier": {
             "id": "${TRUSTED_POLICY_ENTITY}"
@@ -44,6 +44,16 @@ cat <<EOF | jq | tee attestation.deploy
     }
 }
 EOF
+
+if [[ -n "${UNTRUSTED_NAMESPACE}" ]]; then
+    jq <vsa.json ".predicate.metadata.namespace = ${UNTRUSTED_NAMESPACE}" > tmp.json
+    mv tmp.json vsa.json
+fi
+
+if [[ -n "${UNTRUSTED_LABELS}" ]]; then
+    jq <vsa.json ".predicate.metadata.labels = ${UNTRUSTED_LABELS}" > tmp.json
+    mv tmp.json vsa.json
+fi
 
 # TODO: sign with cosign and store in file https://fig.io/manual/cosign/sign
 # WARNING: this does not include Rekor information.

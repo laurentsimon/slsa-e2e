@@ -123,7 +123,9 @@ jobs:
         working-directory: __THIS_REPO__
         env:
           IMMUTABLE_IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
-        run: ./github/workflows/scripts/verify-provenance.sh
+        run: |
+          tree
+          ./github/workflows/scripts/verify-provenance.sh
       - name: Policy verification
         id: policy
         continue-on-error: true
