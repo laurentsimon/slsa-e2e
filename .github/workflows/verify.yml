@@ -124,6 +124,7 @@ jobs:
         env:
           IMMUTABLE_IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
         run: |
+          pwd
           tree
           ./github/workflows/scripts/verify-provenance.sh
       - name: Policy verification
