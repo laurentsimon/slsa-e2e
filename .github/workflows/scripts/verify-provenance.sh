@@ -16,9 +16,13 @@ if [[ "${GITHUB_REF}" = "refs/tags/"* ]]; then
 fi
 
 builder_id=https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml
+echo slsa-verifier verify-image "${IMMUTABLE_IMAGE}" \
+            --source-uri "github.com/${GITHUB_REPOSITORY}"  "${TAG_FLAG}" "${TAG_ARGS}" \
+            --builder-id "${builder_id}" \
+            --print-provenance
 provenance=$(slsa-verifier verify-image "${IMMUTABLE_IMAGE}" \
-            --source "github.com/${GITHUB_REPOSITORY}"  "${TAG_FLAG}" "${TAG_ARGS}" \
-            --builder "${builder_id}" \
+            --source-uri "github.com/${GITHUB_REPOSITORY}"  "${TAG_FLAG}" "${TAG_ARGS}" \
+            --builder-id "${builder_id}" \
             --print-provenance)
 
 if [[ "${provenance}" != "" ]]; then
@@ -29,8 +33,8 @@ fi
 
 builder_id=https://cloudbuild.googleapis.com/GoogleHostedWorker
 provenance=$(slsa-verifier verify-image "${IMMUTABLE_IMAGE}" \
-            --source "github.com/${GITHUB_REPOSITORY}"  "${TAG_FLAG}" "${TAG_ARGS}" \
-            --builder "${builder_id}" \
+            --source-uri "github.com/${GITHUB_REPOSITORY}"  "${TAG_FLAG}" "${TAG_ARGS}" \
+            --builder-id "${builder_id}" \
             --print-provenance)
 
 if [[ "${provenance}" != "" ]]; then

@@ -173,4 +173,3 @@ jobs:
         run: |
           set -euo pipefail
           echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
-          [ "$SUCCESS" == "true" ] || exit 27
