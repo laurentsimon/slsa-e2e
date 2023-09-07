@@ -13,7 +13,7 @@ if [[ "${SUCCESS}" == "true" ]]; then
     verification_result="PASSED"
 fi
 
-cat <<EOF | jq | tee vsa.json
+cat <<EOF | jq > vsa.json
 {
     "_type": "https://in-toto.io/Statement/v0.1",
     "subject": [
@@ -40,14 +40,17 @@ cat <<EOF | jq | tee vsa.json
 EOF
 
 if [[ -n "${UNTRUSTED_NAMESPACE:-}" ]]; then
-    jq <vsa.json ".predicate.metadata.namespace = ${UNTRUSTED_NAMESPACE}" > tmp.json
+   jq <vsa.json ".predicate.metadata.namespace = \"${UNTRUSTED_NAMESPACE}\"" > tmp.json
     mv tmp.json vsa.json
 fi
 
 if [[ -n "${UNTRUSTED_LABELS:-}" ]]; then
+    # TODO: validate that UNTRUSTED_LABELS is a map.
     jq <vsa.json ".predicate.metadata.labels = ${UNTRUSTED_LABELS}" > tmp.json
     mv tmp.json vsa.json
 fi
+
+jq <vsa.json
 
 # TODO: sign with cosign and store in file https://fig.io/manual/cosign/sign
 # WARNING: this does not include Rekor information.
