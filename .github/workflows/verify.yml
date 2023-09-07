@@ -32,9 +32,6 @@ on:
         required: false
         type: string
     outputs:
-      attestation-name:
-        description: "The artifact name of the signed deloy attestation. (A file with the intoto.jsonl extension)."
-        value: ${{ jobs.validate.outputs.attestation-name }}
       # TODO: Support PASS, FAIL, INTERNAL_ERROR and AUDIT.
       outcome:
         description: >
@@ -70,7 +67,7 @@ jobs:
 
   # verify provenance.
   # TODO: make an Action for this.
-  verification:
+  verify:
     needs: [detect-env]
     outputs:
       outcome: ${{ steps.final.outputs.outcome }}
@@ -105,7 +102,7 @@ jobs:
       - name: Compile the policy engine
         id: engine_compile
         continue-on-error: true
-        directory: __THIS_REPO__
+        working-directory: __THIS_REPO__
         run: |
           set -euo pipefail
           go mod vendor
@@ -116,7 +113,7 @@ jobs:
       - name: Verify provenance
         id: provenance
         continue-on-error: true
-        directory: __THIS_REPO__
+        working-directory: __THIS_REPO__
         env:
           IMMUTABLE_IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
         run: ./github/workflows/scripts/verify-provenance.sh
@@ -131,7 +128,7 @@ jobs:
         run: ./github/workflows/scripts/verify-policy.sh
       - name: Create attestation
         id: attestation
-       env:
+        env:
           # TODO:need evaluation output to determine the logging part.
           UNTRUSTED_USER_POLICY: "git+https://github.com/${GITHUB_REPOSITORY}/${{ inputs.policy-path }}"
           UNTRUSTED_IMAGE: "${{ inputs.image }}"
@@ -155,14 +152,14 @@ jobs:
     outputs:
       outcome: ${{ steps.final.outputs.outcome }}
     runs-on: ubuntu-latest
-    needs: [detect-env, generator]
+    needs: [detect-env, verify]
     # Note: always run even if needed jobs are skipped.
     if: always()
     steps:
       - name: Final outcome
         id: final
         env:
-          SUCCESS: ${{ needs.detect-env.outputs.outcome != 'failure' && needs.generator.outputs.outcome != 'failure' }}
+          SUCCESS: ${{ needs.detect-env.outputs.outcome != 'failure' && needs.verify.outputs.outcome != 'failure' }}
         run: |
           set -euo pipefail
           echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
