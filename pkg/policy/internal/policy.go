@@ -138,13 +138,33 @@ func validateRepoPolicy(p RepoPolicy) error {
 func (p *Policy) Evaluate(sourceURI, imageURI, builderID string) results.Verification {
 	// Try the default policy first.
 	orgDefault := p.verifyOrgDefault(sourceURI, imageURI, builderID)
-	return orgDefault
+	if orgDefault.Pass() {
+		return orgDefault
+	}
+	return p.verifyOrgProjects(sourceURI, imageURI, builderID)
 }
 
+func (p *Policy) verifyOrgProjects(sourceURI, imageURI, builderID string) results.Verification {
+	if len(p.orgPolicy.Projects) == 0 {
+		return results.VerificationPass()
+	}
+	for i := range p.orgPolicy.Projects {
+		project := &p.orgPolicy.Projects[i]
+		result := p.verifyOrgEntry(*project, sourceURI, imageURI, builderID)
+		if result.Pass() {
+			return result
+		}
+	}
+	return results.VerificationFail(fmt.Errorf("policy failure"))
+}
 func (p *Policy) verifyOrgDefault(sourceURI, imageURI, builderID string) results.Verification {
+	return p.verifyOrgEntry(*p.orgPolicy.Defaults, sourceURI, imageURI, builderID)
+}
+
+func (p *Policy) verifyOrgEntry(entry Entry, sourceURI, imageURI, builderID string) results.Verification {
 	// Sources are validated and are non-empty.
-	for i := range p.orgPolicy.Defaults.Sources {
-		orgSource := &p.orgPolicy.Defaults.Sources[i]
+	for i := range entry.Sources {
+		orgSource := &entry.Sources[i]
 		orgURI := orgSource.URI
 		if !Glob(orgURI, sourceURI) {
 			continue
@@ -153,13 +173,13 @@ func (p *Policy) verifyOrgDefault(sourceURI, imageURI, builderID string) results
 		// We have a match on the source.
 
 		// 1. Verify the org images.
-		ok := verifyEntryResource(p.orgPolicy.Defaults.Images, imageURI)
+		ok := verifyEntryResource(entry.Images, imageURI)
 		if !ok {
 			return results.VerificationFail(fmt.Errorf("%q: image uri mismatch: %q", contextOrg, imageURI))
 		}
 
 		// 2. verify org build track.
-		ok = verifyBuildTrack(p.orgPolicy.Defaults.Tracks.Build.Builders, builderID)
+		ok = verifyBuildTrack(entry.Tracks.Build.Builders, builderID)
 		if !ok {
 			return results.VerificationFail(fmt.Errorf("%q: builder ID mismatch: %q", contextOrg, builderID))
 		}

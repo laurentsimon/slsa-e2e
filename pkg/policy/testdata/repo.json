@@ -3,7 +3,7 @@
     "projects": [
         {
             "source": {
-                "uri": "git+https://github.com/googlenot/repo1"
+                "uri": "git+https://github.com/googlenot/repo"
             },
             "image": {
                 "uri": "docker://googlenot/myimage:v1.2.3"
