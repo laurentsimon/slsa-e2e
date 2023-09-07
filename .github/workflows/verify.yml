@@ -133,6 +133,7 @@ jobs:
           UNTRUSTED_INPUT_USERNAME: "${{ inputs.registry-username }}"
           UNTRUSTED_SECRET_USERNAME: "${{ secrets.registry-username }}"
           UNTRUSTED_PASSWORD: "${{ secrets.registry-password }}"
+          GCP_ACCESS_TOKEN: 
         run: |
           set -euo pipefail
 
