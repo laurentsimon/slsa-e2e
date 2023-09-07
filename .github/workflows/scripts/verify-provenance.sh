@@ -21,7 +21,7 @@ provenance=$(slsa-verifier verify-image "${IMMUTABLE_IMAGE}" \
             --source-uri "github.com/${GITHUB_REPOSITORY}"  "${tag_args[@]}" \
             --builder-id "${builder_id}" \
             --print-provenance)
-echo "provenance: ${provenance}"
+
 if [[ "${provenance}" != "" ]]; then
     echo "builder_id=${builder_id}" >> "$GITHUB_OUTPUT"
     echo "source_uri=git+https://github.com/${GITHUB_REPOSITORY}" >> "$GITHUB_OUTPUT"

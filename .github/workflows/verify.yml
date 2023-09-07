@@ -115,6 +115,54 @@ jobs:
           go mod vendor
           go build -mod=vendor -trimpath -tags=netgo -o policy-verifier
           chmod u+x policy-verifier
+      - name: Install cosign
+        id: cosign-install
+        uses: sigstore/cosign-installer@6e04d228eb30da1757ee4e1dd75a0ec73a653e06 # v3.1.1
+        with:
+          cosign-release: v2.0.0
+        continue-on-error: true
+      - name: Login
+        id: login
+        continue-on-error: true
+        env:
+          UNTRUSTED_IMAGE: "${{ inputs.image }}"
+          UNTRUSTED_INPUT_USERNAME: "${{ inputs.registry-username }}"
+          UNTRUSTED_SECRET_USERNAME: "${{ secrets.registry-username }}"
+          UNTRUSTED_PASSWORD: "${{ secrets.registry-password }}"
+          GCP_ACCESS_TOKEN: "${{ steps.auth.outputs.access_token }}"
+        run: |
+          set -euo pipefail
+
+          # NOTE: Some docker images are of the form <org>/<name>
+          # Here we get the first part and check if it has a '.' or ':'
+          # character in it to see if it's a domain name.
+          # See: https://stackoverflow.com/questions/37861791/how-are-docker-image-names-parsed#37867949
+          untrusted_registry="docker.io"
+          # NOTE: Do not fail the script if grep does not match.
+          maybe_domain=$(echo "${UNTRUSTED_IMAGE}" | cut -f1 -d "/" | { grep -E "\.|:" || true; })
+          if [ "${maybe_domain}" != "" ]; then
+            untrusted_registry="${maybe_domain}"
+          fi
+
+          if [ "${GCP_ACCESS_TOKEN}" != "" ]; then
+            username="oauth2accesstoken"
+            password="${GCP_ACCESS_TOKEN}"
+          else
+            username="${UNTRUSTED_SECRET_USERNAME:-${UNTRUSTED_INPUT_USERNAME}}"
+            if [ "${username}" == "" ]; then
+                echo "registry-username is required." >&2
+                exit 1
+            fi
+            password="${UNTRUSTED_PASSWORD}"
+            if [ "${password}" == "" ]; then
+                echo "registry-password is required." >&2
+                exit 1
+            fi
+          fi
+
+          echo "login to ${untrusted_registry}"
+          cosign login "${untrusted_registry}" -u "${username}" -p "${password}"
+
       # NOTE: We assume the repository built from is the caller's repository for simplicity.
       # This way we need not inspect every build provenance attestation.
       - name: Verify provenance
@@ -151,7 +199,7 @@ jobs:
       - name: Final outcome
         id: final
         env:
-          SUCCESS: ${{ steps.attestation.outcome != 'failure' && steps.policy.outcome != 'failure' && steps.provenance.outcome != 'failure' && steps.engine_compile.outcome != 'failure' && steps.verifier_install.outcome != 'failure' && steps.caller_checkout.outcome != 'failure' && steps.this_checkout.outcome != 'failure' }}
+          SUCCESS: ${{ steps.attestation.outcome != 'failure' && steps.policy.outcome != 'failure' && steps.provenance.outcome != 'failure' && steps.cosign-install.outcome != 'failure' && steps.login.outcome != 'failure' && steps.engine_compile.outcome != 'failure' && steps.verifier_install.outcome != 'failure' && steps.caller_checkout.outcome != 'failure' && steps.this_checkout.outcome != 'failure' }}
         run: |
           set -euo pipefail
           echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
