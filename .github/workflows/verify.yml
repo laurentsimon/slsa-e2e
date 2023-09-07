@@ -192,13 +192,13 @@ jobs:
         working-directory: __THIS_REPO__
         env:
           # TODO:need evaluation output to determine the logging part.
-          UNTRUSTED_USER_POLICY: "git+https://github.com/${GITHUB_REPOSITORY}/.github/workflows/verify.yml"
+          UNTRUSTED_USER_POLICY: "git+https://github.com/${{ env.GITHUB_REPOSITORY }}/${{ inputs.policy-path }}"
           UNTRUSTED_IMAGE: "${{ inputs.image }}"
           UNTRUSTED_DIGEST: "${{ inputs.digest }}"
           TRUSTED_VERIFIER: "git+https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/deploy_policy.yml@${{ needs.detect-env.outputs.ref }}"
           UNTRUSTED_NAMESPACE: "${{ inputs.metadata-namespace }}"
           UNTRUSTED_LABELS: "${{ inputs.metadata-labels }}"
-          SUCCESS: ${{ steps.provenance == 'success' && steps.policy.outcome == 'success' }}
+          SUCCESS: ${{ steps.provenance.outcome == 'success' && steps.policy.outcome == 'success' }}
         run: ./.github/workflows/scripts/create-attestation.sh
       - name: Final outcome
         id: final
