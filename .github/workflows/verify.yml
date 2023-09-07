@@ -32,7 +32,6 @@ on:
         required: false
         type: string
     outputs:
-      # TODO: Support PASS, FAIL, INTERNAL_ERROR and AUDIT.
       outcome:
         description: >
           The outcome status of the run ('success' or 'failure').
