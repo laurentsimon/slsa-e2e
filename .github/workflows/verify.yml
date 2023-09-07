@@ -15,6 +15,7 @@ on:
         description: "Username to log into the container registry."
       registry-password:
         description: "Password to log in the container registry."
+
     inputs:
       image:
         description: "The OCI image name. This must not include a tag or digest."
@@ -39,11 +40,10 @@ on:
         description: "The labels the k8 resource should match against."
         required: false
         type: string
-    outputs:
-      description: >
-          The outcome status of the run ('success' or 'failure').
 
-          Note: this is only set when `continue-on-error` is `true`.
+    outputs:
+      outcome:
+        description: "The outcome status of the run ('success' or 'failure')."
         value: ${{ jobs.final.outputs.outcome }}
 
 jobs:
