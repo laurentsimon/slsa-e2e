@@ -79,6 +79,10 @@ jobs:
     outputs:
       outcome: ${{ steps.final.outputs.outcome }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # for creating OIDC tokens for signing.
+      packages: write # for uploading attestations.
+      contents: read
     steps:
       - name: Checkout this repository
         id: this_checkout
@@ -129,7 +133,6 @@ jobs:
           UNTRUSTED_INPUT_USERNAME: "${{ inputs.registry-username }}"
           UNTRUSTED_SECRET_USERNAME: "${{ secrets.registry-username }}"
           UNTRUSTED_PASSWORD: "${{ secrets.registry-password }}"
-          GCP_ACCESS_TOKEN: "${{ steps.auth.outputs.access_token }}"
         run: |
           set -euo pipefail
 
