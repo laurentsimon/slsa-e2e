@@ -11,7 +11,7 @@ fi
 validate_path "${UNTRUSTED_USER_POLICY}"
 trusted_path="${UNTRUSTED_USER_POLICY}"
 
-./__CALLER_REPO__/policy-verifier eval \
+"${POLICY_BINARY}" eval \
     --files "__THIS_REPO__/.slsa/policy.json,${trusted_path}" \
     --source-uri "${UNTRUSTED_REPOSITORY}" \
     --image-uri "${UNTRUSTED_MUTABLE_IMAGE}" \
