@@ -123,10 +123,7 @@ jobs:
         working-directory: __THIS_REPO__
         env:
           IMMUTABLE_IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
-        run: |
-          pwd
-          tree
-          ./github/workflows/scripts/verify-provenance.sh
+        run: ./.github/workflows/scripts/verify-provenance.sh
       - name: Policy verification
         id: policy
         continue-on-error: true
@@ -136,7 +133,7 @@ jobs:
           UNTRUSTED_REPOSITORY: "${{ steps.provenance.outputs.builder_id }}"
           UNTRUSTED_MUTABLE_IMAGE: "${{ inputs.image }}"
           UNTRUSTED_BUILDER_ID: "${{ steps.provenance.outputs.builder_id }}"
-        run: ./github/workflows/scripts/verify-policy.sh
+        run: ./.github/workflows/scripts/verify-policy.sh
       - name: Create attestation
         id: attestation
         continue-on-error: true
@@ -150,7 +147,7 @@ jobs:
           UNTRUSTED_NAMESPACE: "${{ inputs.metadata-namespace }}"
           UNTRUSTED_LABELS: "${{ inputs.metadata-labels }}"
           SUCCESS: ${{ steps.provenance == 'success' && steps.policy.outcome == 'success' }}
-        run: ./github/workflows/scripts/create-attestation.sh
+        run: ./.github/workflows/scripts/create-attestation.sh
       - name: Final outcome
         id: final
         env:
