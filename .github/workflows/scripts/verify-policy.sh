@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source .github/workflows/common.sh
+source .github/workflows/scripts/common.sh
 
 if [[ "${UNTRUSTED_BUILDER_ID}" == "" ]]; then
     log_error "internal error: no builder ID"

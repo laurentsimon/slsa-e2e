@@ -142,7 +142,7 @@ jobs:
         working-directory: __THIS_REPO__
         env:
           # TODO:need evaluation output to determine the logging part.
-          UNTRUSTED_USER_POLICY: "git+https://github.com/${GITHUB_REPOSITORY}/${{ inputs.policy-path }}"
+          UNTRUSTED_USER_POLICY: "git+https://github.com/${GITHUB_REPOSITORY}/.github/workflows/verify.yml"
           UNTRUSTED_IMAGE: "${{ inputs.image }}"
           UNTRUSTED_DIGEST: "${{ inputs.digest }}"
           TRUSTED_VERIFIER: "git+https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/deploy_policy.yml@${{ needs.detect-env.outputs.ref }}"

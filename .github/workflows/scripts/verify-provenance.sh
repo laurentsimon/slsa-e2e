@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #set -euo pipefail disabled on purpose.
-source .github/workflows/common.sh
+source .github/workflows/scripts/common.sh
 
 
 # slsa-verifier only supports GH and GCB builders.

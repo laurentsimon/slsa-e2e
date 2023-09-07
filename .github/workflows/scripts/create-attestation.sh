@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source .github/workflows/common.sh
+source .github/workflows/scripts/common.sh
 
 digest_type=$(echo "${UNTRUSTED_DIGEST}" | cut -d@ -f1)
 digest_value=$(echo "${UNTRUSTED_DIGEST}" | cut -d@ -f2)
@@ -31,26 +31,20 @@ cat <<EOF | jq | tee vsa.json
             "id": "${TRUSTED_POLICY_ENTITY}"
         },
         "time_verified": "${time_verified}",
-        "policy": {
-            "uri": "${UNTRUSTED_USER_POLICY}",
+         "policy": {
+            "uri": "${UNTRUSTED_USER_POLICY}"
         },
-        "verificationResult": "${verification_result}",
-        "metadata": {
-            "namespace": "${UNTRUSTED_NAMESPACE}",
-            "labels": {
-                "${UNTRUSTED_LABELS}"
-            }
-        }
+        "verificationResult": "${verification_result}"
     }
 }
 EOF
 
-if [[ -n "${UNTRUSTED_NAMESPACE}" ]]; then
+if [[ -n "${UNTRUSTED_NAMESPACE:-}" ]]; then
     jq <vsa.json ".predicate.metadata.namespace = ${UNTRUSTED_NAMESPACE}" > tmp.json
     mv tmp.json vsa.json
 fi
 
-if [[ -n "${UNTRUSTED_LABELS}" ]]; then
+if [[ -n "${UNTRUSTED_LABELS:-}" ]]; then
     jq <vsa.json ".predicate.metadata.labels = ${UNTRUSTED_LABELS}" > tmp.json
     mv tmp.json vsa.json
 fi
