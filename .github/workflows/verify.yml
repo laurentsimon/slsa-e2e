@@ -185,7 +185,6 @@ jobs:
           UNTRUSTED_REPOSITORY: "${{ steps.provenance.outputs.builder_id }}"
           UNTRUSTED_MUTABLE_IMAGE: "${{ inputs.image }}"
           UNTRUSTED_BUILDER_ID: "${{ steps.provenance.outputs.builder_id }}"
-          POLICY_BINARY: "../__CALLER_REPO__/policy-verifier"
         run: ./.github/workflows/scripts/verify-policy.sh
       - name: Create attestation
         id: attestation
