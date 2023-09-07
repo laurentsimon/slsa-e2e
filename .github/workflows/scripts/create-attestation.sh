@@ -56,6 +56,7 @@ jq <vsa.json
 # WARNING: this does not include Rekor information.
 # https://github.com/sigstore/cosign/issues/3110
 # https://github.com/sigstore/cosign/pull/2994 
-# echo "attestation-name=${attestation_name}.build.slsa" >>"${GITHUB_OUTPUT}"
+cosign attest --yes --type custom --predicate vsa.json  "${UNTRUSTED_IMAGE}@${UNTRUSTED_DIGEST}"
+
 
 # caller will use attach
