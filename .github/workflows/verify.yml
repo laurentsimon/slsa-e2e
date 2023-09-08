@@ -193,10 +193,10 @@ jobs:
         working-directory: __THIS_REPO__
         env:
           # TODO:need evaluation output to determine the logging part.
-          UNTRUSTED_USER_POLICY: "git+https://github.com/${{ env.GITHUB_REPOSITORY }}/${{ inputs.policy-path }}"
+          UNTRUSTED_USER_POLICY: "git+https://github.com/${{ env.GITHUB_REPOSITORY }}/${{ inputs.policy-path }}@${{ env.GITHUB_REF }}"
           UNTRUSTED_IMAGE: "${{ inputs.image }}"
           UNTRUSTED_DIGEST: "${{ inputs.digest }}"
-          TRUSTED_VERIFIER: "git+https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/deploy_policy.yml@${{ needs.detect-env.outputs.ref }}"
+          TRUSTED_VERIFIER: "https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/deploy_policy.yml@${{ needs.detect-env.outputs.ref }}"
           UNTRUSTED_NAMESPACE: "${{ inputs.metadata-namespace }}"
           UNTRUSTED_LABELS: "${{ inputs.metadata-labels }}"
           SUCCESS: ${{ steps.provenance.outcome == 'success' && steps.policy.outcome == 'success' }}
