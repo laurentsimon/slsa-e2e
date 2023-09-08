@@ -14,14 +14,18 @@ if [[ "${SUCCESS}" == "true" ]]; then
 fi
 
 cat <<EOF | jq > vsa.json
-"verifier": {
-    "id": "${TRUSTED_VERIFIER}"
-},
-"time_verified": "${time_verified}",
-    "policy": {
-    "uri": "${UNTRUSTED_USER_POLICY}"
-},
-"verificationResult": "${verification_result}"
+{
+    "predicate": {
+        "verifier": {
+            "id": "${TRUSTED_VERIFIER}"
+        },
+        "time_verified": "${time_verified}",
+         "policy": {
+            "uri": "${UNTRUSTED_USER_POLICY}"
+        },
+        "verificationResult": "${verification_result}"
+    }
+}
 EOF
 
 if [[ -n "${UNTRUSTED_NAMESPACE:-}" ]]; then
