@@ -4,8 +4,6 @@ set -euo pipefail
 
 source .github/workflows/scripts/common.sh
 
-digest_type=$(echo "${UNTRUSTED_DIGEST}" | cut -d: -f1)
-digest_value=$(echo "${UNTRUSTED_DIGEST}" | cut -d: -f2)
 time_verified=$(date)
 
 verification_result="FAILED"
@@ -15,27 +13,25 @@ fi
 
 cat <<EOF | jq > vsa.json
 {
-    "predicate": {
-        "verifier": {
-            "id": "${TRUSTED_VERIFIER}"
-        },
-        "time_verified": "${time_verified}",
-         "policy": {
-            "uri": "${UNTRUSTED_USER_POLICY}"
-        },
-        "verificationResult": "${verification_result}"
-    }
+    "verifier": {
+        "id": "${TRUSTED_VERIFIER}"
+    },
+    "time_verified": "${time_verified}",
+        "policy": {
+        "uri": "${UNTRUSTED_USER_POLICY}"
+    },
+    "verificationResult": "${verification_result}"
 }
 EOF
 
 if [[ -n "${UNTRUSTED_NAMESPACE:-}" ]]; then
-   jq <vsa.json ".predicate.metadata.namespace = \"${UNTRUSTED_NAMESPACE}\"" > tmp.json
+   jq <vsa.json ".metadata.namespace = \"${UNTRUSTED_NAMESPACE}\"" > tmp.json
     mv tmp.json vsa.json
 fi
 
 if [[ -n "${UNTRUSTED_LABELS:-}" ]]; then
     # TODO: validate that UNTRUSTED_LABELS is a map.
-    jq <vsa.json ".predicate.metadata.labels = ${UNTRUSTED_LABELS}" > tmp.json
+    jq <vsa.json ".metadata.labels = ${UNTRUSTED_LABELS}" > tmp.json
     mv tmp.json vsa.json
 fi
 
