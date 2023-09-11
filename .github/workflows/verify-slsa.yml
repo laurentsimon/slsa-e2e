@@ -196,7 +196,7 @@ jobs:
           UNTRUSTED_USER_POLICY: "git+https://github.com/${{ github.repository }}/${{ inputs.policy-path }}@${{ github.ref }}"
           UNTRUSTED_IMAGE: "${{ inputs.image }}"
           UNTRUSTED_DIGEST: "${{ inputs.digest }}"
-          TRUSTED_VERIFIER: "https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/deploy_policy.yml@${{ needs.detect-env.outputs.ref }}"
+          TRUSTED_VERIFIER: "https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/verify-slsa.yml@${{ needs.detect-env.outputs.ref }}"
           UNTRUSTED_NAMESPACE: "${{ inputs.metadata-namespace }}"
           UNTRUSTED_LABELS: "${{ inputs.metadata-labels }}"
           SUCCESS: ${{ steps.provenance.outcome == 'success' && steps.policy.outcome == 'success' }}
