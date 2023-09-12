@@ -47,5 +47,5 @@ curl -L \
 # Verify the VSA via:
 # cosign verify-attestation ghcr.io/test-organization-ls/demo-a@sha256:4778b974bec2a5332cafebd3a2280d4c4cc7b8e51079646e164568a806484bd4 \
 #           --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-#           --certificate-identity-regexp https://github.com/laurentsimon/slsa-policy/.github/workflows/verify.yml@refs/tags/v[0-9].[0-9].[0-9] \
+#           --certificate-identity-regexp https://github.com/laurentsimon/slsa-policy/.github/workflows/verify-slsa.yml@refs/tags/v[0-9].[0-9].[0-9] \
 #           --type https://slsa.dev/verification_summary/v1 | jq
