@@ -105,11 +105,16 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
           path: __CALLER_REPO__
-      - name: Installer slsa-verifier
+      - name: Install slsa-verifier
         id: verifier_install
         continue-on-error: true
         uses: slsa-framework/slsa-verifier/actions/installer@73d1bcba982de0f644baec83df839399d13f472e # v2.4.0
       # TODO: need an Action to install the engine.
+      - name: Setup Go
+        id: setup-go
+        uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
+        with:
+          go-version-file: __THIS_REPO__/go.mod
       - name: Compile the policy engine
         id: engine_compile
         continue-on-error: true
@@ -204,7 +209,7 @@ jobs:
       - name: Final outcome
         id: final
         env:
-          SUCCESS: ${{ steps.attestation.outcome != 'failure' && steps.policy.outcome != 'failure' && steps.provenance.outcome != 'failure' && steps.cosign-install.outcome != 'failure' && steps.login.outcome != 'failure' && steps.engine_compile.outcome != 'failure' && steps.verifier_install.outcome != 'failure' && steps.caller_checkout.outcome != 'failure' && steps.this_checkout.outcome != 'failure' }}
+          SUCCESS: ${{ steps.attestation.outcome != 'failure' && steps.policy.outcome != 'failure' && steps.provenance.outcome != 'failure' && steps.setup-go.outcome != 'failure' && steps.cosign-install.outcome != 'failure' && steps.login.outcome != 'failure' && steps.engine_compile.outcome != 'failure' && steps.verifier_install.outcome != 'failure' && steps.caller_checkout.outcome != 'failure' && steps.this_checkout.outcome != 'failure' }}
         run: |
           set -euo pipefail
           echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
