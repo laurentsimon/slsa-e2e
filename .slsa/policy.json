@@ -29,6 +29,11 @@
             {
                 "uri": "git+https://github.com/laurentsimon/*"
             }
+        ],
+        "images": [
+            {
+                "uri": "ghcr.io/laurentsimon/*"
+            }
         ]
     }
 }
