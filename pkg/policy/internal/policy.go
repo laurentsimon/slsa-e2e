@@ -148,6 +148,8 @@ func (p *Policy) verifyOrgProjects(sourceURI, imageURI, builderID string) result
 	if len(p.orgPolicy.Projects) == 0 {
 		return results.VerificationPass()
 	}
+	// TODO: need to use the defaults and update fields
+	// that are specified.
 	for i := range p.orgPolicy.Projects {
 		project := &p.orgPolicy.Projects[i]
 		result := p.verifyOrgEntry(*project, sourceURI, imageURI, builderID)

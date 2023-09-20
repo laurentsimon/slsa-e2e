@@ -43,4 +43,10 @@ jq <vsa.json
 # https://github.com/sigstore/cosign/pull/2994 
 cosign attest --yes --type https://slsa.dev/verification_summary/v1 --predicate vsa.json "${UNTRUSTED_IMAGE}@${UNTRUSTED_DIGEST}"
 
+# verify with:
+# cosign verify-attestation <image> \
+#       --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+#       --certificate-identity-regexp https://github.com/laurentsimon/slsa-policy/.github/workflows/verify-slsa.yml@refs/tags/v[0-9].[0-9].[0-9] \
+#       --type https://slsa.dev/verification_summary/v1 | jq -r '.payload' | base64 -d | jq
+
 # caller will use attach
