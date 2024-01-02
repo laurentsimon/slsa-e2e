@@ -30,6 +30,11 @@ on:
       environment:
         description: "The environment the image is for. Must match one of the fields provided in the release policy. Example: prod, dev, etc."
         type: string
+      continue-on-error:
+        description: "Prevents a workflow run from failing when a job fails. Set to 'true' to allow a workflow run to pass when a job fails."
+        required: false
+        type: boolean
+        default: false
 
     outputs:
       outcome:
@@ -139,6 +144,8 @@ jobs:
         id: final
         env:
           SUCCESS: ${{ needs.detect-env.outputs.outcome != 'failure' && needs.evaluate.outputs.outcome != 'failure' }}
+          CONTINUE: ${{ inputs.continue-on-error }}
         run: |
           set -euo pipefail
           echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
+          [ "$CONTINUE" == "true" ] || [ "$SUCCESS" == "true" ] || exit 27
