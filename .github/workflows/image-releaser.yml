@@ -99,7 +99,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
       # TODO: use the Action
-      name: Install evaluator
+      - name: Install evaluator
         id: install
         continue-on-error: true
         run: |
