@@ -70,7 +70,7 @@ jobs:
     permissions:
       id-token: write # for creating OIDC tokens for signing.
       packages: write # for uploading attestations.
-      contents: read
+      contents: read # To read the repo.
     steps:
       - name: Checkout this repository
         id: checkout
@@ -98,10 +98,12 @@ jobs:
           token: "${{ github.token }}"
           persist-credentials: false
           fetch-depth: 1
-      # TODO: use the Action
+      # TODO: use the installer Action
       - name: Install evaluator
         id: install
         continue-on-error: true
+        env:
+          GH_TOKEN: "${{ github.token }}"
         run: |
           set -euo pipefail
           gh release -R laurentsimon/binaries download v0.0.0 -p policy-evaluator
