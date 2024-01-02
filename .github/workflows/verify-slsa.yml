@@ -128,7 +128,9 @@ jobs:
         id: cosign-install
         uses: sigstore/cosign-installer@6e04d228eb30da1757ee4e1dd75a0ec73a653e06 # v3.1.1
         with:
-          cosign-release: v2.0.0
+          # WARNING: do not use version v2.2.0 because of a change in dsse kind
+          # which kyverno is unable to parse.
+          cosign-release: v2.1.1
         continue-on-error: true
       - name: Login
         id: login

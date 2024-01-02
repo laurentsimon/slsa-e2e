@@ -17,7 +17,7 @@ cat <<EOF | jq > vsa.json
         "id": "${TRUSTED_VERIFIER}"
     },
     "time_verified": "${time_verified}",
-        "policy": {
+    "policy": {
         "uri": "${UNTRUSTED_USER_POLICY}"
     },
     "verificationResult": "${verification_result}"

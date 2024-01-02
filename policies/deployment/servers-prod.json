@@ -1,0 +1,43 @@
+{
+    "format":1,
+    "principal": {
+        "uri":"k8_sa://name@project-id.iam.gserviceaccount.com"
+    },
+    "build": {
+        "require_slsa_level": 3
+    },
+    "packages":[
+        {
+            "name": "laurentsimon/echo-server",
+            "environment": {
+                "any_of": [
+                    "prod"
+                ]
+            }
+        },
+        {
+            "name": "laurentsimon/database-server",
+            "environment": {
+                "any_of": [
+                    "prod"
+                ]
+            }
+        },
+        {
+            "name": "laurentsimon/logger",
+            "environment": {
+                "any_of": [
+                    "prod"
+                ]
+            }
+        },
+        {
+            "name": "laurentsimon/ids",
+            "environment": {
+                "any_of": [
+                    "prod"
+                ]
+            }
+        }
+    ]
+}
