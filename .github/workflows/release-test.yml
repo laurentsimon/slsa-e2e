@@ -19,6 +19,6 @@ jobs:
       - run: |
           set -euo pipefail
           gh release -R laurentsimon/binaries download v0.0.0 -p policy-evaluator
-          chmod o+x policy-evaluator
+          chmod u+x policy-evaluator
           image=docker.io/laurentsimon/slsa-project-echo-server@sha256:3ea35df97f1c8f80984322af66356fbf52d5c05baf7f41a0ec2fd6a5e75bc088
           ./policy-evaluator policies/release/org.json policies/release/ "${image}" creator_id dev
