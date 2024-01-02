@@ -1,0 +1,142 @@
+name: Release policy evaluator
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+on:
+  workflow_call:
+    secrets:
+      registry-username:
+        description: "Username to log into the container registry."
+      registry-password:
+        description: "Password to log in the container registry."
+
+    inputs:
+      image:
+        description: "The OCI image name. This must not include a tag or digest."
+        required: true
+        type: string
+      digest:
+        description: "The OCI image digest. The image digest of the form '<algorithm>:<digest>' (e.g. 'sha256:abcdef...')"
+        required: true
+        type: string
+      registry-username:
+        description: "Username to log into the container registry."
+        type: string
+      environment:
+        description: "The environment the image is for. Must match one of the fields provided in the release policy. Example: prod, dev, etc."
+        type: string
+
+    outputs:
+      outcome:
+        description: "The outcome status of the run ('success' or 'failure')."
+        value: ${{ jobs.final.outputs.outcome }}
+
+jobs:
+  # detect-env detects the reusable workflow's repository and ref for use later
+  # in the workflow.
+  detect-env:
+    outputs:
+      outcome: ${{ steps.final.outputs.outcome }}
+      repository: ${{ steps.detect.outputs.repository }}
+      ref: ${{ steps.detect.outputs.ref }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Needed to detect the current reusable repository and ref.
+    steps:
+      - name: Detect the generator ref
+        id: detect
+        continue-on-error: true
+        uses: slsa-framework/slsa-github-generator/.github/actions/detect-workflow-js@v1.9.0
+
+      - name: Final outcome
+        id: final
+        env:
+          SUCCESS: ${{ steps.detect.outcome != 'failure' }}
+        run: |
+          set -euo pipefail
+          echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
+
+  #evaluate the release policy.
+  verify:
+    needs: [detect-env]
+    outputs:
+      outcome: ${{ steps.final.outputs.outcome }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # for creating OIDC tokens for signing.
+      packages: write # for uploading attestations.
+      contents: read
+    steps:
+      - name: Checkout this repository
+        id: checkout
+        continue-on-error: true
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          repository: "${{ needs.detect-env.outputs.repository }}"
+          ref: "${{ needs.detect-env.outputs.ref }}"
+          token: "${{ github.token }}"
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Login the registry
+        id: login
+        continue-on-error: true
+        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # v2.0.0
+        with:
+          # Use docker to simpliy local testing.
+          registry: docker.io
+          username: ${{ inputs.registry-username || secrets.registry-username }}
+          password: ${{ secrets.registry-password }}
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          repository: "${{ needs.detect-env.outputs.repository }}"
+          ref: "${{ needs.detect-env.outputs.ref }}"
+          token: "${{ github.token }}"
+          persist-credentials: false
+          fetch-depth: 1
+      # TODO: use the Action
+      name: Install evaluator
+        id: install
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          gh release -R laurentsimon/binaries download v0.0.0 -p policy-evaluator
+          chmod u+x policy-evaluator
+      - id: evaluate
+        continue-on-error: true
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          CREATOR_ID: "https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/image-releaser.yml@${{ needs.detect-env.outputs.ref }}"
+          IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
+        run: |
+          set -euo pipefail
+          ./policy-evaluator release evaluate policies/release/org.json policies/release/ "${IMAGE}" "${CREATOR_ID}" "${ENVIRONMENT}"
+      - name: Final outcome
+        id: final
+        env:
+          SUCCESS: ${{ steps.checkout.outcome != 'failure' && steps.login.outcome != 'failure' && steps.evaluate.outcome != 'failure' }}
+        run: |
+          set -euo pipefail
+          echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
+
+  # final fails or succeeds based on the value of `inputs.continue-on-error`
+  # and the outcome of previous jobs.
+  final:
+    outputs:
+      outcome: ${{ steps.final.outputs.outcome }}
+    runs-on: ubuntu-latest
+    needs: [detect-env, verify]
+    # Note: always run even if needed jobs are skipped.
+    if: always()
+    steps:
+      - name: Final outcome
+        id: final
+        env:
+          SUCCESS: ${{ needs.detect-env.outputs.outcome != 'failure' && needs.verify.outputs.outcome != 'failure' }}
+        run: |
+          set -euo pipefail
+          echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"

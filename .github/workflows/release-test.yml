@@ -23,6 +23,7 @@ jobs:
           username: laurentsimon
           password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # TODO: install the evaluator
       - run: |
           set -euo pipefail
           gh release -R laurentsimon/binaries download v0.0.0 -p policy-evaluator
