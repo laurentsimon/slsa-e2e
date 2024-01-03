@@ -1,4 +1,4 @@
-name: Release policy evaluator
+name: Deployment policy evaluator
 
 permissions:
   contents: read
@@ -26,6 +26,9 @@ on:
         type: string
       registry-username:
         description: "Username to log into the container registry."
+        type: string
+      policy-id:
+        description: "The policy ID to evaluate. This is the unique path for the policy file under policies/deployment. Example: servers-dev.json, myproject/mycluster-prod.json, etc."
         type: string
       environment:
         description: "The environment the image is for. Must match one of the fields defined in the release policy. Example: prod, dev, etc."
@@ -117,13 +120,15 @@ jobs:
         continue-on-error: true
         env:
           ENVIRONMENT: ${{ inputs.environment }}
-          RELEASER_ID: "https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/image-releaser.yml@${{ needs.detect-env.outputs.ref }}"
+          DEPLOYER_ID: "https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/image-deployer.yml@${{ needs.detect-env.outputs.ref }}"
+          POLICY_ID: ${{ inputs.policy-id }}
           IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
         run: |
           set -euo pipefail
-          ./policy-evaluator release evaluate policies/release/org.json policies/release/ "${IMAGE}" "${RELEASER_ID}" "${ENVIRONMENT}"
+          cd policies/deployment
+          ../../policy-evaluator release evaluate org.json . "${IMAGE}" "${POLICY_ID}" "${DEPLOYER_ID}" "${ENVIRONMENT}"
           # NOTE: We can verify with:
-          # cosign verify-attestation "${IMAGE}" --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity "${RELEASER_ID}" --type https://slsa.dev/release/v0.1 | jq -r '.payload' | base64 -d | jq
+          # cosign verify-attestation "${IMAGE}" --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity "${DEPLOYER_ID}" --type https://slsa.dev/deployment/v0.1 | jq -r '.payload' | base64 -d | jq
       - name: Final outcome
         id: final
         env:
