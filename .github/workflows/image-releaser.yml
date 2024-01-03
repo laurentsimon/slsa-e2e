@@ -28,7 +28,7 @@ on:
         description: "Username to log into the container registry."
         type: string
       environment:
-        description: "The environment the image is for. Must match one of the fields provided in the release policy. Example: prod, dev, etc."
+        description: "The environment the image is for. Must match one of the fields defined in the release policy. Example: prod, dev, etc."
         type: string
       continue-on-error:
         description: "Prevents a workflow run from failing when a job fails. Set to 'true' to allow a workflow run to pass when a job fails."
@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           echo "outcome=$([ "$SUCCESS" == "true" ] && echo "success" || echo "failure")" >> "$GITHUB_OUTPUT"
 
-  # evaluate the release policy.
+  # evaluate evaluates the release policy.
   evaluate:
     needs: [detect-env]
     outputs:
@@ -87,7 +87,7 @@ jobs:
           token: "${{ github.token }}"
           persist-credentials: false
           fetch-depth: 1
-      - name: Login the registry
+      - name: Log-in the registry
         id: login
         continue-on-error: true
         uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # v2.0.0
@@ -122,6 +122,8 @@ jobs:
         run: |
           set -euo pipefail
           ./policy-evaluator release evaluate policies/release/org.json policies/release/ "${IMAGE}" "${CREATOR_ID}" "${ENVIRONMENT}"
+          # NOTE: We can verify with:
+          # cosign verify-attestation "${IMAGE}" --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity "${CREATOR_ID}" --type https://slsa.dev/release/v0.1 | jq -r '.payload' | base64 -d | jq
       - name: Final outcome
         id: final
         env:
