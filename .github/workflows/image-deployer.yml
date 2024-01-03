@@ -126,7 +126,7 @@ jobs:
         run: |
           set -euo pipefail
           cd policies/deployment
-          ../../policy-evaluator release evaluate org.json . "${IMAGE}" "${POLICY_ID}" "${DEPLOYER_ID}" "${ENVIRONMENT}"
+          ../../policy-evaluator deployment evaluate org.json . "${IMAGE}" "${POLICY_ID}" "${DEPLOYER_ID}" "${ENVIRONMENT}"
           # NOTE: We can verify with:
           # cosign verify-attestation "${IMAGE}" --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity "${DEPLOYER_ID}" --type https://slsa.dev/deployment/v0.1 | jq -r '.payload' | base64 -d | jq
       - name: Final outcome
