@@ -30,4 +30,4 @@ jobs:
           chmod u+x policy-evaluator
           image=docker.io/laurentsimon/slsa-project-echo-server@sha256:4378b3d11e11ede0f64946e588c590e460e44f90c8a7921ad2cb7b04aaf298d4
           cd policies/deployment
-          ../../policy-evaluator deployment evaluate org.json . "${image}" creator_id dev
+          ../../policy-evaluator deployment evaluate org.json . "${image}" servers-dev.json creator_id dev
