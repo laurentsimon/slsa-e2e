@@ -1,0 +1,33 @@
+name: deployment test
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  release:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate Docker
+        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # v2.0.0
+        with:
+          # Use docker to simpliy local testing.
+          registry: docker.io
+          username: laurentsimon
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # TODO: install the evaluator
+      - working-directory: policies/deployment
+        run: |
+          set -euo pipefail
+          gh release -R laurentsimon/binaries download v0.0.0 -p policy-evaluator
+          chmod u+x policy-evaluator
+          image=docker.io/laurentsimon/slsa-project-echo-server@sha256:4378b3d11e11ede0f64946e588c590e460e44f90c8a7921ad2cb7b04aaf298d4
+          ./policy-evaluator deployment evaluate org.json . "${image}" creator_id dev
