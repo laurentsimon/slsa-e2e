@@ -30,9 +30,6 @@ on:
       policy-id:
         description: "The policy ID to evaluate. This is the unique path for the policy file under policies/deployment. Example: servers-dev.json, myproject/mycluster-prod.json, etc."
         type: string
-      environment:
-        description: "The environment the image is for. Must match one of the fields defined in the release policy. Example: prod, dev, etc."
-        type: string
       continue-on-error:
         description: "Prevents a workflow run from failing when a job fails. Set to 'true' to allow a workflow run to pass when a job fails."
         required: false
@@ -119,14 +116,13 @@ jobs:
       - id: evaluate
         continue-on-error: true
         env:
-          ENVIRONMENT: ${{ inputs.environment }}
           DEPLOYER_ID: "https://github.com/${{ needs.detect-env.outputs.repository }}/.github/workflows/image-deployer.yml@${{ needs.detect-env.outputs.ref }}"
           POLICY_ID: ${{ inputs.policy-id }}
           IMAGE: "${{ inputs.image }}@${{ inputs.digest }}"
         run: |
           set -euo pipefail
           cd policies/deployment
-          ../../policy-evaluator deployment evaluate org.json . "${IMAGE}" "${POLICY_ID}" "${DEPLOYER_ID}" "${ENVIRONMENT}"
+          ../../policy-evaluator deployment evaluate org.json . "${IMAGE}" "${POLICY_ID}" "${DEPLOYER_ID}"
           # NOTE: We can verify with:
           # cosign verify-attestation "${IMAGE}" --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity "${DEPLOYER_ID}" --type https://slsa.dev/deployment/v0.1 | jq -r '.payload' | base64 -d | jq
       - name: Final outcome

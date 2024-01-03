@@ -4,7 +4,7 @@
         "uri":"k8_sa://name@dev-project-id.iam.gserviceaccount.com"
     },
     "build": {
-        "require_slsa_level": 2
+        "require_slsa_level": 3
     },
     "packages":[
         {
