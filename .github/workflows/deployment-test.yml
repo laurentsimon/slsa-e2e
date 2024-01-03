@@ -24,10 +24,10 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       # TODO: install the evaluator
-      - working-directory: policies/deployment
-        run: |
+      - run: |
           set -euo pipefail
           gh release -R laurentsimon/binaries download v0.0.0 -p policy-evaluator
           chmod u+x policy-evaluator
           image=docker.io/laurentsimon/slsa-project-echo-server@sha256:4378b3d11e11ede0f64946e588c590e460e44f90c8a7921ad2cb7b04aaf298d4
-          ./policy-evaluator deployment evaluate org.json . "${image}" creator_id dev
+          cd policies/deployment
+          ../../policy-evaluator deployment evaluate org.json . "${image}" creator_id dev
