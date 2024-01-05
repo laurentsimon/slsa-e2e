@@ -1,7 +1,7 @@
 {
     "format":1,
     "principal": {
-        "uri":"k8_sa://name@dev-project-id.iam.gserviceaccount.com"
+        "uri":"k8_sa://name@staging-project-id.iam.gserviceaccount.com"
     },
     "build": {
         "require_slsa_level": 3
